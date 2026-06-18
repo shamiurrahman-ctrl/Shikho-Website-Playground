@@ -1,4 +1,4 @@
-# Shikho-Website
+# Shikho-Website-playground
 
 Welcome to the Shikho-Website repository. This is where we build and maintain the Shikho learning platform website.
 
