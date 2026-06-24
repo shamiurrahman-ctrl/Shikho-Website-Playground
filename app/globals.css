@@ -1,26 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;500;600;700;800&family=Baloo+Da+2:wght@400;500;600;700;800&family=Hind+Siliguri:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --accent: #FAA700;
+  --blue: #2D4797;
+  --blue2: #355DAB;
+  --mag: #E2008D;
+  --red: #FF1C5A;
+  --amber: #FAA700;
+  --ink: #161B33;
+  --muted: #6E7691;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #FBFAF7;
+  color: #161B33;
+  font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
 }
+
+/* Tailwind's preflight resets img to {max-width:100%;height:auto}, which
+   clobbers the inline sizing on the raw hero images. Restore it here. */
+#student img {
+  height: 100%;
+  width: auto;
+  max-width: none;
+}
+#heroFog {
+  width: 118%;
+  max-width: none;
+  height: auto;
+}
+#heroBg {
+  max-width: none;
+}
+
+@keyframes driftBack {
+  0% { transform: translate3d(-2.5%, 0, 0); }
+  100% { transform: translate3d(2.5%, 0, 0); }
+}
+@keyframes driftFront {
+  0% { transform: translate3d(3.5%, 0, 0); }
+  100% { transform: translate3d(-3.5%, 0, 0); }
+}
+@keyframes confettiFall {
+  0% { transform: translateY(-10px) rotate(0); opacity: 1; }
+  100% { transform: translateY(120px) rotate(320deg); opacity: 0; }
+}
+@keyframes bbar {
+  0% { height: 5px; }
+  100% { height: var(--bh); }
+}
+
+/* CTA button press/hover states (ported from reference style-hover/style-active) */
+.btn-3d {
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn-pink {
+  background: linear-gradient(180deg, #EE2EA4 0%, #E2008D 55%, #D10082 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 5px 0 #A1006B, 0 14px 24px rgba(0, 0, 0, .30);
+  text-shadow: 0 1px 1px rgba(124, 0, 76, .4);
+}
+.btn-pink:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 7px 0 #A1006B, 0 16px 26px rgba(0, 0, 0, .30);
+}
+.btn-pink:active {
+  transform: translateY(4px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 2px 0 #A1006B, 0 8px 14px rgba(0, 0, 0, .30);
+}
+.btn-blue {
+  background: linear-gradient(180deg, #3C5AB4 0%, #2D4797 55%, #233A7C 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 5px 0 #1C2C5A, 0 14px 24px rgba(0, 0, 0, .30);
+  text-shadow: 0 1px 1px rgba(10, 18, 45, .5);
+}
+.btn-blue:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 7px 0 #1C2C5A, 0 16px 26px rgba(0, 0, 0, .30);
+}
+.btn-blue:active {
+  transform: translateY(4px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 2px 0 #1C2C5A, 0 8px 14px rgba(0, 0, 0, .30);
+}
+
+/* ---- Site header: full-width bar -> floating adaptive-glass pill ---- */
+#siteHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+#hdrInner {
+  box-sizing: border-box;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 36px;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0;
+  padding: 22px 40px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  transition:
+    max-width 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-top 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.5s ease 0.05s,
+    border-color 0.5s ease 0.05s,
+    box-shadow 0.5s ease 0.05s;
+}
+#siteHeader.scrolled #hdrInner {
+  max-width: 900px;
+  margin-top: 12px;
+  padding: 11px 20px;
+  border-radius: 18px;
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+#siteHeader.scrolled.tone-light #hdrInner {
+  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(0, 0, 0, 0.07);
+  box-shadow: 0 10px 30px rgba(10, 16, 40, 0.1);
+}
+#siteHeader.scrolled.tone-dark #hdrInner {
+  background: rgba(18, 22, 46, 0.42);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 32px rgba(10, 16, 40, 0.28);
+}
+
+#hdrLogoBox {
+  position: relative;
+  height: 34px;
+  width: 150px;
+  flex: none;
+  transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#hdrLogoFull,
+#hdrLogoBird {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  max-width: none;
+  display: block;
+  transition: opacity 0.45s ease;
+}
+#hdrLogoFull { height: 34px; opacity: 1; }
+#hdrLogoBird { height: 30px; opacity: 0; }
+#siteHeader.scrolled #hdrLogoFull { opacity: 0; }
+#siteHeader.scrolled #hdrLogoBird { opacity: 1; }
+
+#hdrNav {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  font-family: 'Hind Siliguri', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.5s ease;
+}
+#hdrNav a { color: inherit; text-decoration: none; }
+#hdrLogin {
+  font-family: 'Hind Siliguri', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.5s ease;
+}
+#hdrCta { display: flex; align-items: center; gap: 14px; flex: none; }
+#siteHeader.tone-dark #hdrNav,
+#siteHeader.tone-dark #hdrLogin { color: #fff; }
+#siteHeader.tone-light #hdrNav { color: #161B33; }
+#siteHeader.tone-light #hdrLogin { color: #2D4797; }
