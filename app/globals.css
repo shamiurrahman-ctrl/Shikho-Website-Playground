@@ -125,9 +125,9 @@ body {
     box-shadow 0.5s ease 0.05s;
 }
 #siteHeader.scrolled #hdrInner {
-  max-width: 900px;
+  max-width: 86%; /* aligns with the hero content inset (7% gutters each side) */
   margin-top: 12px;
-  padding: 11px 20px;
+  padding: 11px 28px;
   border-radius: 18px;
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   backdrop-filter: blur(14px) saturate(140%);

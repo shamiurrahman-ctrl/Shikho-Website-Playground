@@ -60,10 +60,10 @@ const MARKUP = `
       <div id="heroText" style="position:absolute;left:7%;right:auto;top:21%;text-align:left;z-index:50;will-change:transform,opacity;max-width:660px;">
         <div id="heroTitleSlot" style="position:relative;">
           <div id="heroBig" style="will-change:opacity,transform;">
-            <h1 style="font-family:'Anek Bangla',sans-serif;font-weight:700;font-size:clamp(48px,5.8vw,88px);line-height:1.03;margin:0;color:#fff;letter-spacing:-.012em;text-shadow:0 2px 30px rgba(8,16,45,.45);">শেখাটা এখন<br>আরও স্মার্ট।</h1>
-            <p style="font-family:'Hind Siliguri',sans-serif;font-size:clamp(17px,1.5vw,23px);color:#D7E0F5;margin:24px 0 0;max-width:540px;font-weight:400;line-height:1.6;text-shadow:0 1px 16px rgba(8,16,45,.4);">SSC ও HSC প্রস্তুতির সবচেয়ে স্মার্ট সঙ্গী — AI ক্লাস, ইনস্ট্যান্ট উত্তর আর পার্সোনালাইজড গাইডেন্স, সব এক অ্যাপে।</p>
+            <h1 id="heroH1" style="font-family:'Anek Bangla',sans-serif;font-weight:700;font-size:clamp(48px,5.8vw,88px);line-height:1.03;margin:0;color:#fff;letter-spacing:-.012em;text-shadow:0 2px 30px rgba(8,16,45,.45);will-change:opacity,transform;">শেখাটা এখন<br>আরও স্মার্ট।</h1>
+            <p id="heroSub" style="font-family:'Hind Siliguri',sans-serif;font-size:clamp(17px,1.5vw,23px);color:#D7E0F5;margin:24px 0 0;max-width:540px;font-weight:400;line-height:1.6;text-shadow:0 1px 16px rgba(8,16,45,.4);will-change:opacity;">SSC ও HSC প্রস্তুতির সবচেয়ে স্মার্ট সঙ্গী — AI ক্লাস, ইনস্ট্যান্ট উত্তর আর পার্সোনালাইজড গাইডেন্স, সব এক অ্যাপে।</p>
           </div>
-          <h2 id="heroSingle" style="position:absolute;left:0;top:0;margin:0;opacity:0;font-family:'Anek Bangla',sans-serif;font-weight:700;font-size:clamp(40px,4.6vw,64px);line-height:1.05;letter-spacing:-.012em;color:#fff;will-change:opacity;">লাখো শিক্ষার্থীর আস্থা।</h2>
+          <h2 id="heroSingle" style="position:absolute;left:0;top:0;margin:0;opacity:0;font-family:'Anek Bangla',sans-serif;font-weight:700;font-size:clamp(40px,4.6vw,64px);line-height:1.05;letter-spacing:-.012em;color:#fff;will-change:opacity,transform,filter;">লাখো শিক্ষার্থীর আস্থা।</h2>
         </div>
         <div id="heroLower" style="will-change:transform;">
         <div id="heroCtaRow" style="display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap;">
@@ -139,6 +139,22 @@ const MARKUP = `
       <!-- STUDENT holding the phone (behind it) -->
       <div id="student" style="position:absolute;left:84%;bottom:0;transform:translateX(-50%);height:96vh;z-index:24;will-change:transform,opacity;transform-origin:50% 100%;pointer-events:none;">
         <img src="/assets/student.png" alt="" style="display:block;height:100%;width:auto;filter:drop-shadow(0 26px 54px rgba(13,26,91,.20));">
+      </div>
+
+      <!-- solar-system: educational icons orbiting BEHIND the girl & phone -->
+      <div id="orbit" style="position:absolute;left:83%;top:44%;width:0;height:0;z-index:23;pointer-events:none;opacity:0;will-change:transform,opacity;">
+        <div style="position:absolute;left:50%;top:50%;width:600px;height:600px;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid rgba(255,255,255,.12);"></div>
+        <div style="position:absolute;left:50%;top:50%;width:410px;height:410px;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid rgba(255,255,255,.10);"></div>
+        <div id="orbitOuter" style="position:absolute;left:0;top:0;width:0;height:0;will-change:transform;">
+          <div class="orbiter" data-r="300" data-a="-104"><img class="orbiter-ic" src="/assets/anim-scale.svg" alt="" style="width:54px;max-width:none;display:block;filter:drop-shadow(0 8px 16px rgba(8,16,45,.35));"></div>
+          <div class="orbiter" data-r="300" data-a="22"><img class="orbiter-ic" src="/assets/anim-calculator.svg" alt="" style="width:56px;max-width:none;display:block;filter:drop-shadow(0 8px 16px rgba(8,16,45,.35));"></div>
+          <div class="orbiter" data-r="300" data-a="142"><img class="orbiter-ic" src="/assets/anim-stats.svg" alt="" style="width:52px;max-width:none;display:block;filter:drop-shadow(0 8px 16px rgba(8,16,45,.35));"></div>
+        </div>
+        <div id="orbitInner" style="position:absolute;left:0;top:0;width:0;height:0;will-change:transform;">
+          <div class="orbiter" data-r="205" data-a="-42"><img class="orbiter-ic" src="/assets/anim-video.svg" alt="" style="width:56px;max-width:none;display:block;filter:drop-shadow(0 8px 16px rgba(8,16,45,.35));"></div>
+          <div class="orbiter" data-r="205" data-a="84"><img class="orbiter-ic" src="/assets/anim-notebook.svg" alt="" style="width:58px;max-width:none;display:block;filter:drop-shadow(0 8px 16px rgba(8,16,45,.35));"></div>
+          <div class="orbiter" data-r="205" data-a="206"><img class="orbiter-ic" src="/assets/anim-calendar.svg" alt="" style="width:54px;max-width:none;display:block;filter:drop-shadow(0 8px 16px rgba(8,16,45,.35));"></div>
+        </div>
       </div>
 
       <!-- PHONE -->
@@ -594,6 +610,61 @@ export default function ShikhoHome() {
         `<img src="${s.getAttribute('data-icon')}" alt="" style="position:absolute;right:8px;bottom:-16px;width:56px;height:auto;max-width:none;opacity:.9;pointer-events:none;">`;
     });
 
+    // place the orbiting icons on their rings (left/top = r*cos/sin of the angle)
+    qa('.orbiter').forEach((o) => {
+      const r = +(o.getAttribute('data-r') || 0);
+      const a = (+(o.getAttribute('data-a') || 0) * Math.PI) / 180;
+      o.setAttribute(
+        'style',
+        `position:absolute;left:${(r * Math.cos(a)).toFixed(1)}px;top:${(r * Math.sin(a)).toFixed(1)}px;transform:translate(-50%,-50%);`
+      );
+    });
+
+    // ---- per-word blur reveal: load entrance + scroll-driven blur out/in ----
+    const EASE = 'cubic-bezier(.22,.75,.28,1)';
+    const wrapWords = (node: Element | null): HTMLElement[] => {
+      if (!node) return [];
+      const lines = node.innerHTML.split(/<br\s*\/?>/i);
+      node.innerHTML = lines
+        .map((line) =>
+          line
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(
+              (w) =>
+                `<span class="bw" style="display:inline-block;white-space:pre;will-change:filter,transform,opacity;">${w}</span>`
+            )
+            .join(' ')
+        )
+        .join('<br>');
+      return Array.from(node.querySelectorAll('.bw')) as HTMLElement[];
+    };
+    const blurKf = [
+      { opacity: 0, filter: 'blur(12px)', transform: 'translateY(16px)' },
+      { opacity: 1, filter: 'blur(0px)', transform: 'translateY(0)' },
+    ];
+    const h1Words = wrapWords(q('#heroH1'));
+    const subWords = wrapWords(q('#heroSub'));
+    const singleWords = wrapWords(q('#heroSingle')); // revealed on scroll, not load
+    let h1Taken = false; // becomes true once scroll takes over the first title
+    h1Words.forEach((sp, i) =>
+      sp.animate(blurKf, { duration: 520, delay: 120 + i * 78, easing: EASE, fill: 'both' })
+    );
+    subWords.forEach((sp, i) =>
+      sp.animate(blurKf, { duration: 520, delay: 440 + i * 26, easing: EASE, fill: 'both' })
+    );
+    const ctaRow = q('#heroCtaRow');
+    if (ctaRow) {
+      ctaRow.animate(
+        [
+          { opacity: 0, filter: 'blur(10px)', transform: 'translateY(14px)' },
+          { opacity: 1, filter: 'blur(0px)', transform: 'translateY(0)' },
+        ],
+        { duration: 560, delay: 720, easing: EASE, fill: 'both' }
+      );
+    }
+
     const el = {
       heroBg: q<HTMLImageElement>('#heroBg'),
       siteHeader: q('#siteHeader'),
@@ -605,6 +676,8 @@ export default function ShikhoHome() {
       glow: q('#glow'),
       hero: q('#heroText'),
       heroBig: q('#heroBig'),
+      heroH1: q('#heroH1'),
+      heroSub: q('#heroSub'),
       heroSingle: q('#heroSingle'),
       heroLower: q('#heroLower'),
       heroStats: q('#heroStats'),
@@ -612,6 +685,11 @@ export default function ShikhoHome() {
       statRowB: q('#statRowB'),
       hreels: qa('.hreel-col'),
       student: q('#student'),
+      orbit: q('#orbit'),
+      orbitOuter: q('#orbitOuter'),
+      orbitInner: q('#orbitInner'),
+      orbitOuterIcons: qa('#orbitOuter .orbiter-ic'),
+      orbitInnerIcons: qa('#orbitInner .orbiter-ic'),
       hint: q('#scrollHint'),
       phone: q('#phone'),
       fog: q('#heroFog'),
@@ -948,19 +1026,38 @@ export default function ShikhoHome() {
         el.hero.style.visibility = leftOut >= 1 ? 'hidden' : 'visible';
       }
       const tint = 1 - mc(P, 1.0, 1.5); // 1 = dark hero bg, 0 = light
-      if (el.heroBig) {
-        const o = 1 - mc(P, 0.45, 0.95);
-        el.heroBig.style.opacity = String(o);
-        el.heroBig.style.transform = `translateY(${lerp(0, -18, mc(P, 0.45, 0.95))}px)`;
+      // 1) subtitle disappears first, 2) big title fades, 3) CTA lifts up,
+      // 4) single title materializes with a blur-and-rise reveal
+      if (el.heroSub) {
+        el.heroSub.style.opacity = String(1 - mc(P, 0.3, 0.55));
       }
-      if (el.heroSingle) {
-        el.heroSingle.style.opacity = String(mc(P, 0.85, 1.1));
-        el.heroSingle.style.color = `rgb(${Math.round(lerp(22, 255, tint))},${Math.round(lerp(27, 255, tint))},${Math.round(lerp(51, 255, tint))})`;
+      // first title blurs OUT word-by-word on scroll (same style as the load reveal)
+      if (P > 0.42) {
+        if (!h1Taken) {
+          h1Words.forEach((w) => w.getAnimations().forEach((a) => a.cancel()));
+          h1Taken = true;
+        }
+        h1Words.forEach((w, i) => {
+          const pr = eo(clamp((P - (0.46 + i * 0.05)) / 0.32, 0, 1));
+          w.style.opacity = String(1 - pr);
+          w.style.filter = `blur(${pr * 12}px)`;
+          w.style.transform = `translateY(${-pr * 14}px)`;
+        });
       }
-      // lift the CTA + stats up as the big title collapses, so the CTA sits near the title
       if (el.heroLower) {
-        const collapse = eo(mc(P, 0.5, 1.0));
+        const collapse = eo(mc(P, 0.66, 1.04));
         el.heroLower.style.transform = `translateY(${-heroGap * collapse}px)`;
+      }
+      // next title blurs IN word-by-word on scroll (same loading style)
+      if (el.heroSingle) {
+        el.heroSingle.style.opacity = '1';
+        el.heroSingle.style.color = `rgb(${Math.round(lerp(22, 255, tint))},${Math.round(lerp(27, 255, tint))},${Math.round(lerp(51, 255, tint))})`;
+        singleWords.forEach((w, i) => {
+          const pr = eo(clamp((P - (0.72 + i * 0.05)) / 0.34, 0, 1));
+          w.style.opacity = String(pr);
+          w.style.filter = `blur(${(1 - pr) * 10}px)`;
+          w.style.transform = `translateY(${(1 - pr) * 16}px)`;
+        });
       }
       if (el.heroStats) {
         el.heroStats.style.opacity = String(mc(P, 0.88, 1.08));
@@ -1017,6 +1114,25 @@ export default function ShikhoHome() {
         const drift = fade * 5;
         el.student.style.transform = `translateX(-50%) translateY(${bob + drift}%)`;
         el.student.style.visibility = op < 0.01 ? 'hidden' : 'visible';
+      }
+
+      // solar-system orbit: rings rotate (outer slow CW, inner faster CCW),
+      // icons counter-rotate to stay upright; whole system fades with the hero
+      if (el.orbit) {
+        const oop = 1 - mc(P, 0.12, 0.55);
+        el.orbit.style.opacity = String(oop);
+        el.orbit.style.transform = `scale(${phoneScale})`;
+        el.orbit.style.visibility = oop < 0.01 ? 'hidden' : 'visible';
+        const ao = time * 5; // outer ring degrees
+        const ai = -time * 8; // inner ring degrees (opposite)
+        if (el.orbitOuter) el.orbitOuter.style.transform = `rotate(${ao}deg)`;
+        if (el.orbitInner) el.orbitInner.style.transform = `rotate(${ai}deg)`;
+        el.orbitOuterIcons.forEach((ic) => {
+          ic.style.transform = `rotate(${-ao}deg)`;
+        });
+        el.orbitInnerIcons.forEach((ic) => {
+          ic.style.transform = `rotate(${-ai}deg)`;
+        });
       }
 
       // clouds dissipate
