@@ -190,3 +190,75 @@ body {
 #siteHeader.tone-dark #hdrLogin { color: #fff; }
 #siteHeader.tone-light #hdrNav { color: #161B33; }
 #siteHeader.tone-light #hdrLogin { color: #2D4797; }
+
+/* Stats cards — progressive blur frosted into the top-right corner */
+.scard-blur {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  -webkit-mask-image: radial-gradient(56% 60% at 100% 0%, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 72%);
+  mask-image: radial-gradient(56% 60% at 100% 0%, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 72%);
+}
+
+/* ===== Core features — numbered accordion ===== */
+.fitem {
+  margin-bottom: 2px;
+}
+.fitem-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 7px 0;
+}
+.fnum {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #aeb6ce;
+  background: #eaeef9;
+  transition: background 0.45s ease, color 0.45s ease, box-shadow 0.45s ease;
+}
+.flabel {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 600;
+  font-size: 23px;
+  color: #8891ae;
+  transition: color 0.45s ease;
+}
+.fbody {
+  padding-left: 66px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.55s cubic-bezier(0.22, 0.75, 0.28, 1), opacity 0.45s ease;
+}
+.fhead {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: clamp(26px, 2.3vw, 38px);
+  line-height: 1.14;
+  color: #0f1b4c;
+  letter-spacing: -0.01em;
+  margin: 2px 0 14px;
+}
+.fitem.on .fnum {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 12px 24px -6px rgba(250, 167, 0, 0.55);
+}
+.fitem.on .flabel {
+  color: var(--accent);
+}
+.fitem.on .fbody {
+  max-height: 240px;
+  opacity: 1;
+}
