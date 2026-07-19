@@ -104,26 +104,30 @@ const FEATURE_MARKUP = `
   <section id="featTrack" data-dark="0" style="position:relative;height:560vh;margin-top:-100vh;z-index:2;">
     <div id="featStage" style="position:sticky;top:0;height:100vh;overflow:hidden;">
 
-      <!-- single cloud+body+blob image; only the empty transparent side margins bleed off-screen (full width). It scroll-rises as one piece: the transparent top passes over the stats and up beyond the viewport, bringing the blob region into view for the phone to sit on. -->
-      <img id="featBg" src="/assets/feature-bg.png" alt="" style="position:absolute;left:-1.5%;top:0;width:116%;max-width:none;height:auto;z-index:0;pointer-events:none;will-change:transform;">
+      <!-- three parallax cloud layers that fly up over the stats. base = top cloud + full white dotted section; mid + bottom = extra cloud volume that sweeps up faster. positions driven by the scroll loop. -->
+      <img id="featBot" src="/assets/feature-bot.png" alt="" style="position:absolute;left:44%;top:0;width:56%;max-width:none;height:auto;z-index:0;pointer-events:none;will-change:transform;">
+      <img id="featMid" src="/assets/feature-mid.png" alt="" style="position:absolute;left:60%;top:0;width:50%;max-width:none;height:auto;z-index:1;pointer-events:none;will-change:transform;">
+      <img id="featBase" src="/assets/feature-base.png" alt="" style="position:absolute;left:-2%;top:0;width:104%;max-width:none;height:auto;z-index:2;pointer-events:none;will-change:transform;">
 
       <!-- content on the left -->
-      <div style="position:absolute;left:7%;top:50vh;max-width:600px;z-index:3;">
-        <h2 style="font-family:'Anek Bangla',sans-serif;font-weight:700;font-size:clamp(28px,3.1vw,50px);line-height:1.12;margin:0;color:#0F1B4C;letter-spacing:-.01em;"><span style="color:#2D4797;">Shikho</span> একাডেমিক প্রোগ্রামে<br>যা যা থাকছে</h2>
+      <div id="featIntro" style="position:absolute;left:7%;top:14vh;max-width:600px;z-index:3;opacity:0;will-change:opacity;">
+        <h2 style="font-family:'Anek Bangla',sans-serif;font-weight:700;font-size:clamp(28px,3.1vw,50px);line-height:1.12;margin:0;color:#161b33;letter-spacing:-.01em;">Shikho একাডেমিক প্রোগ্রামে<br>যা যা থাকছে</h2>
       </div>
 
-      <div id="featList" style="position:absolute;left:7%;top:calc(50vh + 120px);width:min(37%,440px);z-index:3;">
-        <div class="fitem on" data-i="0"><div class="fitem-row"><span class="fnum">০১</span><span class="flabel">লাইভ ক্লাস</span></div><div class="fbody"><p class="fhead">সরাসরি ক্লাসে যুক্ত হও, প্রশ্ন করো সাথে সাথেই।</p></div></div>
-        <div class="fitem" data-i="1"><div class="fitem-row"><span class="fnum">০২</span><span class="flabel">স্মার্ট ক্লাস</span></div><div class="fbody"><p class="fhead">ভিডিও দেখো, AI দিয়ে যেকোনো অংশ বুঝে নাও।</p></div></div>
-        <div class="fitem" data-i="2"><div class="fitem-row"><span class="fnum">০৩</span><span class="flabel">অ্যানিমেটেড ভিডিও</span></div><div class="fbody"><p class="fhead">কঠিন টপিকও সহজ হবে, প্রাণবন্ত অ্যানিমেশনে।</p></div></div>
-        <div class="fitem" data-i="3"><div class="fitem-row"><span class="fnum">০৪</span><span class="flabel">ই-বুক</span></div><div class="fbody"><p class="fhead">ক্লাস নোট আর পিডিএফ — সব এক জায়গায়।</p></div></div>
-        <div class="fitem" data-i="4"><div class="fitem-row"><span class="fnum">০৫</span><span class="flabel">কুইজ ও মডেল টেস্ট</span></div><div class="fbody"><p class="fhead">নিজেকে যাচাই করো, যেকোনো সময়।</p></div></div>
-        <div class="fitem" data-i="5"><div class="fitem-row"><span class="fnum">০৬</span><span class="flabel">শিখো AI</span></div><div class="fbody"><p class="fhead">যেকোনো প্রশ্ন, তাৎক্ষণিক উত্তর।</p></div></div>
+      <div id="featList" style="position:absolute;left:7%;top:calc(14vh + 150px);width:min(42%,520px);z-index:3;opacity:0;will-change:opacity;">
+        <div id="featProgTrack"></div>
+        <div id="featProg"></div>
+        <div class="fitem on" data-i="0"><div class="frow"><span class="fnum">০১</span><span class="flabel">লাইভ ক্লাস</span></div><div class="fbody"><p>সরাসরি ক্লাসে যুক্ত হও, প্রশ্ন করো — সাথে সাথেই উত্তর।</p></div></div>
+        <div class="fitem" data-i="1"><div class="frow"><span class="fnum">০২</span><span class="flabel">স্মার্ট ক্লাস</span></div><div class="fbody"><p>রেকর্ডেড ভিডিও দেখো, AI দিয়ে যেকোনো অংশ বুঝে নাও।</p></div></div>
+        <div class="fitem" data-i="2"><div class="frow"><span class="fnum">০৩</span><span class="flabel">অ্যানিমেটেড ভিডিও</span></div><div class="fbody"><p>কঠিন টপিকও সহজ হয়ে যায় প্রাণবন্ত অ্যানিমেশনে।</p></div></div>
+        <div class="fitem" data-i="3"><div class="frow"><span class="fnum">০৪</span><span class="flabel">ই-বুক</span></div><div class="fbody"><p>ক্লাস নোট আর পিডিএফ — পুরো সিলেবাস এক জায়গায়।</p></div></div>
+        <div class="fitem" data-i="4"><div class="frow"><span class="fnum">০৫</span><span class="flabel">কুইজ ও মডেল টেস্ট</span></div><div class="fbody"><p>প্রতিটা অধ্যায় শেষে নিজেকে যাচাই করো, যেকোনো সময়।</p></div></div>
+        <div class="fitem" data-i="5"><div class="frow"><span class="fnum">০৬</span><span class="flabel">শিখো AI</span></div><div class="fbody"><p>প্রশ্ন লেখো বা ছবি তোলো — উত্তর মেলে তাৎক্ষণিক।</p></div></div>
       </div>
 
       <!-- phone + floating elements sit over the blob (baked into the background) -->
-      <div id="featPhone" style="position:absolute;left:61%;top:50vh;transform:translateX(-50%);z-index:2;will-change:transform;">
-        <img src="/assets/feature-phone.png" alt="" style="height:52vh;width:auto;display:block;">
+      <div id="featPhone" style="position:absolute;left:78%;top:14vh;transform:translateX(-50%);z-index:2;opacity:0;will-change:transform,opacity;">
+        <img src="/assets/feature-phone.png" alt="" style="height:82vh;width:auto;display:block;">
         <img id="featCard" src="/assets/feature-card.png" alt="" style="position:absolute;left:-24%;top:30%;width:62%;height:auto;z-index:4;will-change:transform;filter:drop-shadow(0 22px 40px rgba(13,26,91,.18));">
         <img id="featDate" src="/assets/feature-date.png" alt="" style="position:absolute;right:-14%;bottom:12%;width:56%;height:auto;z-index:4;will-change:transform;filter:drop-shadow(0 22px 40px rgba(13,26,91,.18));">
       </div>
@@ -241,6 +245,7 @@ export default function ShikhoHome() {
 
     // ---- window-hero → stats cascade (one pinned section) ----
     const statsTrack = q('#statsTrack');
+    const statsStage = q('#statsStage');
     const statsHead = q('#statsHead');
     const statsGroup = q('#statsGroup');
     const scards = qa('.scard');
@@ -250,7 +255,13 @@ export default function ShikhoHome() {
 
     // ---- core features (accordion + phone) ----
     const featTrack = q('#featTrack');
-    const featBg = q('#featBg');
+    const featBase = q('#featBase');
+    const featMid = q('#featMid');
+    const featBot = q('#featBot');
+    const featIntro = q('#featIntro');
+    const featList = q('#featList');
+    const featProgTrack = q('#featProgTrack');
+    const featProg = q('#featProg');
     const fitems = qa('.fitem');
     const featPhone = q('#featPhone');
     const featCard = q('#featCard');
@@ -281,6 +292,8 @@ export default function ShikhoHome() {
     const hsTitleWords = wrapWords(q('#hsText h1'));
     const hsSubWords = wrapWords(q('#hsText p'));
     const headWords = wrapWords(q('#statsHead h2'));
+    const featTitleWords = wrapWords(q('#featIntro h2'));
+    if (featTitleWords[0]) featTitleWords[0].style.color = '#3b4ee3'; // keep "Shikho" in the brand indigo
 
     const render = () => {
       const vh = window.innerHeight;
@@ -368,24 +381,117 @@ export default function ShikhoHome() {
         });
       }
 
-      // ---- core features: accordion advances + phone parallax ----
+      // ---- core features: staged entrance, then the accordion advances ----
       if (featTrack && fitems.length) {
         const ft = featTrack.getBoundingClientRect();
         const fTravel = featTrack.offsetHeight - vh;
         const fp = clamp(-ft.top / fTravel, 0, 1);
-        // 6 beats spread across the middle of the scroll (small lead-in / lead-out)
-        const active = clamp(Math.floor(mc(fp, 0.05, 0.92) * fitems.length), 0, fitems.length - 1);
+
+        // Freeze the stats so it doesn't move a pixel while the clouds fly over it. A JS
+        // counter-transform can't cancel compositor scrolling (lags a frame → jump), so pin it
+        // on the compositor with position:fixed. Engage the moment the stats reach the top
+        // (statsTrack.top ≤ 0) — the sticky is pinned at top:0 there so the swap is seamless,
+        // AND it happens at the stats' entry, far from the cloud transition. Stays fixed right
+        // through the transition (no layout change during it), then hands back to sticky once
+        // the white section has covered it. Only touch styles on state change.
+        if (statsStage && statsTrack) {
+          const el = statsStage as HTMLElement;
+          const pinned = statsTrack.getBoundingClientRect().top <= 0 && fp < 0.5;
+          if (pinned && el.dataset.frozen !== '1') {
+            el.dataset.frozen = '1';
+            el.style.position = 'fixed';
+            el.style.top = '0';
+            el.style.left = '0';
+            el.style.width = '100%';
+          } else if (!pinned && el.dataset.frozen === '1') {
+            el.dataset.frozen = '0';
+            el.style.position = 'sticky';
+            el.style.left = '';
+            el.style.width = '';
+          }
+        }
+
+        // 1) clouds fly up from below over the stats. base (TOP cloud + full white section)
+        // is in front and rises so its cloud SURPASSES the whole stats (white body fills to
+        // the top). mid + bottom are smaller puffs behind, faster, for parallax depth.
+        // Layered parallax: each cloud enters at its OWN time and moves at its OWN speed, with a
+        // subtle scroll-driven horizontal drift (a different phase each) so they never align.
+        // Bottom enters first & slowest (0.55x); Middle next & medium (0.8x); the Top — which
+        // carries the white feature section — enters last & fastest (1.15x) and overtakes to
+        // cover the others. Each has an independent translate3d (never grouped).
+        const drift = (amp: number, ph: number) => (amp * Math.sin(fp * 7 + ph)).toFixed(1);
+        if (featBot) {
+          const y = lerp(120, -35, mc(fp, 0.02, 0.56)); // enters FIRST and rises well up into view
+          featBot.style.transform = `translate3d(${drift(8, 0)}px, ${y}vh, 0)`;
+        }
+        if (featMid) {
+          const y = lerp(120, -62, mc(fp, 0.13, 0.53)); // enters ~25%, medium — rises well above
+          featMid.style.transform = `translate3d(${drift(12, 2.4)}px, ${y}vh, 0)`;
+        }
+        if (featBase) {
+          // enters ~40%, fastest — overtakes and settles so the white section fills to the
+          // bottom (covering the others fully) with its cloud lifted above. baseH from width
+          // (104%, aspect 2880:3158) so we never read offsetHeight in the loop (layout thrash).
+          const baseH = 1.1404 * document.documentElement.clientWidth;
+          const settleY = Math.max(vh - baseH + 6, -0.35 * baseH);
+          const y = lerp(1.10 * vh, settleY, mc(fp, 0.23, 0.48));
+          featBase.style.transform = `translate3d(${drift(15, 4.8)}px, ${y}px, 0)`;
+        }
+
+        // 2) once the top cloud has taken over, the phone rises + fades in
+        const pPhone = mc(fp, 0.48, 0.62);
+        if (featPhone) {
+          featPhone.style.opacity = String(pPhone);
+          featPhone.style.transform = `translateX(-50%) translateY(${lerp(44, 0, pPhone)}px)`;
+        }
+        // 3) the title does its per-word blur reveal, then the feature items blur in from the
+        //    LEFT, one after another (staggered), like the list assembling itself.
+        if (featIntro) {
+          featIntro.style.opacity = '1';
+          wordFx(featTitleWords, fp, 0.52, 0.64, 0.013, null, 0, 0);
+        }
+        if (featList) (featList as HTMLElement).style.opacity = '1';
+        fitems.forEach((it, i) => {
+          const p = eo(mc(fp, 0.54 + i * 0.018, 0.63 + i * 0.018));
+          const el = it as HTMLElement;
+          el.style.opacity = String(p);
+          const blur = (1 - p) * 8;
+          el.style.filter = blur < 0.05 ? 'none' : `blur(${blur.toFixed(2)}px)`;
+          el.style.transform = `translateX(${((1 - p) * -46).toFixed(1)}px)`;
+        });
+        // 4) the active step advances as you scroll on (after the items have assembled)
+        const pBeats = mc(fp, 0.74, 0.96);
+        const segf = pBeats * (fitems.length - 1);   // 0 .. n-1
+        const active = clamp(Math.floor(segf), 0, fitems.length - 1);
+        const fillFrac = clamp(segf - active, 0, 1);  // progress toward the next step
+        // the progress line fades in with its active item's reveal
+        const activeRevealP = eo(mc(fp, 0.54 + active * 0.018, 0.63 + active * 0.018));
         if (active !== activeFeat) {
           activeFeat = active;
           fitems.forEach((it, i) => it.classList.toggle('on', i === active));
         }
-        // cloud rises as one piece: at pin the cloud sits at the top, then it scrolls
-        // up beyond the viewport (its transparent top revealing the stats behind while it
-        // passes over) until the blob region settles behind the phone.
-        if (featBg) featBg.style.transform = `translateY(${lerp(0, -5, fp)}vw)`;
-        if (featPhone) featPhone.style.transform = `translateX(-50%) translateY(${lerp(24, -24, fp)}px)`;
-        if (featCard) featCard.style.transform = `translateY(${lerp(22, -22, fp)}px)`;
-        if (featDate) featDate.style.transform = `translateY(${lerp(-18, 18, fp)}px)`;
+        // progress line: only between the active badge and the next, filling as you scroll
+        if (featProgTrack && featProg) {
+          const last = active >= fitems.length - 1;
+          if (last) {
+            featProgTrack.style.opacity = '0';
+            featProg.style.opacity = '0';
+          } else {
+            const cur = fitems[active] as HTMLElement;
+            const nxt = fitems[active + 1] as HTMLElement;
+            const top = cur.offsetTop + 52;             // just below the active badge
+            const h = Math.max(0, (nxt.offsetTop - 4) - top); // stop just above the next badge
+            featProgTrack.style.opacity = String(activeRevealP);
+            featProgTrack.style.top = top + 'px';
+            featProgTrack.style.height = h + 'px';
+            featProg.style.opacity = String(activeRevealP);
+            featProg.style.top = top + 'px';
+            featProg.style.height = h * fillFrac + 'px';
+          }
+        }
+        // floating cards keep a gentle parallax relative to the phone
+        if (featCard) featCard.style.transform = `translateY(${lerp(16, -16, fp)}px)`;
+        if (featDate) featDate.style.transform = `translateY(${lerp(-14, 14, fp)}px)`;
       }
     };
 
