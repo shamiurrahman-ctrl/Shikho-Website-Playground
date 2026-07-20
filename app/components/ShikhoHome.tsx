@@ -34,7 +34,7 @@ const HEADER_MARKUP = `
 
 const STATS_MARKUP = `
 <!-- ============ WINDOW HERO → STATS (one continuous pinned section) ============ -->
-  <section id="statsTrack" data-dark="1" style="position:relative;height:440vh;background:#050b26;z-index:1;">
+  <section id="statsTrack" data-dark="1" style="position:relative;height:300vh;background:#050b26;z-index:1;">
     <div id="statsStage" style="position:sticky;top:0;height:100vh;overflow:hidden;">
       <!-- deep sky + sunrise glow -->
       <div style="position:absolute;inset:0;background:radial-gradient(120% 78% at 50% 122%,#ff8a3a 0%,#ff7c2e 7%,rgba(255,150,80,0) 46%),linear-gradient(180deg,#050b26 0%,#0a1a4e 32%,#155fce 70%,#4bb2ff 100%);"></div>
@@ -101,7 +101,7 @@ const STATS_MARKUP = `
 
 const FEATURE_MARKUP = `
 <!-- ============ CORE FEATURES (content over the dotted-white cloud background) ============ -->
-  <section id="featTrack" data-dark="0" style="position:relative;height:560vh;margin-top:-100vh;z-index:2;">
+  <section id="featTrack" data-dark="0" style="position:relative;height:400vh;margin-top:-100vh;z-index:2;">
     <div id="featStage" style="position:sticky;top:0;height:100vh;overflow:hidden;">
 
       <!-- three parallax cloud layers that fly up over the stats. base = top cloud + full white dotted section; mid + bottom = extra cloud volume that sweeps up faster. positions driven by the scroll loop. -->
@@ -470,23 +470,25 @@ export default function ShikhoHome() {
           activeFeat = active;
           fitems.forEach((it, i) => it.classList.toggle('on', i === active));
         }
-        // progress line: only between the active badge and the next, filling as you scroll
+        // progress line: only between the active badge and the next, filling as you scroll.
+        // Position from a CONSTANT layout formula (not live offsetTop) so the CSS top/height
+        // transitions ease smoothly between steps instead of chasing a mid-reflow offset.
+        // Rows above the active one are always compact -> stride = row(48)+gap(12)=60; the open
+        // body is a fixed 112, so the segment length is constant (112+4=116).
         if (featProgTrack && featProg) {
           const last = active >= fitems.length - 1;
           if (last) {
             featProgTrack.style.opacity = '0';
             featProg.style.opacity = '0';
           } else {
-            const cur = fitems[active] as HTMLElement;
-            const nxt = fitems[active + 1] as HTMLElement;
-            const top = cur.offsetTop + 52;             // just below the active badge
-            const h = Math.max(0, (nxt.offsetTop - 4) - top); // stop just above the next badge
+            const top = active * 60 + 52;   // just below the active badge
+            const h = 116;                  // active badge -> next badge (constant)
             featProgTrack.style.opacity = String(activeRevealP);
             featProgTrack.style.top = top + 'px';
             featProgTrack.style.height = h + 'px';
             featProg.style.opacity = String(activeRevealP);
             featProg.style.top = top + 'px';
-            featProg.style.height = h * fillFrac + 'px';
+            featProg.style.height = (h * fillFrac).toFixed(1) + 'px';
           }
         }
         // floating cards keep a gentle parallax relative to the phone

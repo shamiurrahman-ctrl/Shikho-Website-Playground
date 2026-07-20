@@ -233,6 +233,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* fixed height so switching the open item never reflows the column:
+     6 rows (48) + 5 gaps (12) + one open body (112) = 460 */
+  min-height: 460px;
 }
 #featProgTrack,
 #featProg {
@@ -243,8 +246,10 @@ body {
   z-index: 0;
   opacity: 0;
 }
-#featProgTrack { background: rgba(10, 12, 17, 0.12); }
-#featProg { background: #3B4EE3; }
+/* ease the line between steps instead of snapping (position set by the scroll loop);
+   the fill's height stays untransitioned so it tracks scroll 1:1 */
+#featProgTrack { background: rgba(10, 12, 17, 0.12); transition: top 0.32s cubic-bezier(0.22, 0.75, 0.28, 1), height 0.32s cubic-bezier(0.22, 0.75, 0.28, 1); }
+#featProg { background: #3B4EE3; transition: top 0.32s cubic-bezier(0.22, 0.75, 0.28, 1); }
 
 /* each feature is a numbered step */
 .fitem { position: relative; }
@@ -280,13 +285,17 @@ body {
   color: #0a0c11;
   transition: color 0.4s ease;
 }
+/* the open body keeps a CONSTANT reserved height (never max-height 0->auto), so
+   switching the active item slides the rows by a fixed amount instead of reflowing
+   to a new total — the column height stays put. */
 .fbody {
   padding-left: 82px;        /* align under the label (48 badge + 34 gap) */
-  max-height: 0;
-  opacity: 0;
+  height: 0;
   overflow: hidden;
-  transition: max-height 0.55s cubic-bezier(0.22, 0.75, 0.28, 1), opacity 0.4s ease;
+  transition: height 0.32s cubic-bezier(0.22, 0.75, 0.28, 1);
 }
+/* text crossfade: the outgoing description fades out FIRST (no delay), the incoming
+   one fades in AFTER a short delay — a soft, sequential swap, no slide/scale. */
 .fbody p {
   font-family: 'Anek Bangla', sans-serif;
   font-weight: 600;
@@ -296,6 +305,9 @@ body {
   color: #161b33;
   margin: 14px 0 2px;
   max-width: 480px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 .fitem.on .fnum {
   color: #3b4ee3;
@@ -303,4 +315,9 @@ body {
   box-shadow: 0 10px 22px -8px rgba(59, 78, 227, 0.32);
 }
 .fitem.on .flabel { color: #3b4ee3; }
-.fitem.on .fbody { max-height: 220px; opacity: 1; }
+.fitem.on .fbody { height: 112px; }
+.fitem.on .fbody p {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.22s ease 0.12s, transform 0.22s ease 0.12s;
+}
