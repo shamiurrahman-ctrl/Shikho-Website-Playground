@@ -206,6 +206,32 @@ body {
   mask-image: radial-gradient(56% 60% at 100% 0%, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 72%);
 }
 
+/* routine day-chips marquee — continuous linear right->left loop behind the phone.
+   gap:0 + translateX(-50%) over a doubled row = perfectly seamless (each chip's SVG
+   canvas carries its own padding, so no flex gap is needed for spacing). */
+.chips-track {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  width: max-content;
+  will-change: transform;
+  animation: chipMarquee 26s linear infinite;
+}
+.chips-track img {
+  height: 100%;
+  width: auto;
+  display: block;
+  flex: none;
+  /* pull chips together into the transparent canvas padding for a tighter row.
+     applied UNIFORMLY to every chip (incl. the wrap boundary) so each advance stays
+     equal and translateX(-50%) over the doubled row remains perfectly seamless. */
+  margin-right: -18px;
+}
+@keyframes chipMarquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
 /* ===== Core features — numbered stepper (matches Figma 88-17100) ===== */
 .feat-kicker {
   display: inline-flex;

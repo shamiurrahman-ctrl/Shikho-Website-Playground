@@ -129,7 +129,14 @@ const FEATURE_MARKUP = `
       <div id="featPhone" style="position:absolute;left:78%;top:14vh;transform:translateX(-50%);z-index:2;opacity:0;will-change:transform,opacity;">
         <img src="/assets/feature-phone.png" alt="" style="height:82vh;width:auto;display:block;">
         <img id="featCard" src="/assets/feature-card.png" alt="" style="position:absolute;left:-24%;top:30%;width:62%;height:auto;z-index:4;will-change:transform;filter:drop-shadow(0 22px 40px rgba(13,26,91,.18));">
-        <img id="featDate" src="/assets/feature-date.png" alt="" style="position:absolute;right:-14%;bottom:12%;width:56%;height:auto;z-index:4;will-change:transform;filter:drop-shadow(0 22px 40px rgba(13,26,91,.18));">
+        <!-- routine day-chips: seamless right->left marquee, clipped to this frame and sitting
+             BEHIND the phone (z-index:-1). The 7-chip row is duplicated immediately after so the
+             loop is gapless; the built-in canvas padding on each chip supplies the spacing. -->
+        <div id="featChips" style="position:absolute;left:34%;bottom:15%;width:150%;height:15vh;overflow:hidden;z-index:-1;pointer-events:none;">
+          <div class="chips-track">
+            <img src="/assets/day-sat.svg" alt=""><img src="/assets/day-sun.svg" alt=""><img src="/assets/day-mon.svg" alt=""><img src="/assets/day-tue.svg" alt=""><img src="/assets/day-wed.svg" alt=""><img src="/assets/day-thu.svg" alt=""><img src="/assets/day-fri.svg" alt=""><img src="/assets/day-sat.svg" alt=""><img src="/assets/day-sun.svg" alt=""><img src="/assets/day-mon.svg" alt=""><img src="/assets/day-tue.svg" alt=""><img src="/assets/day-wed.svg" alt=""><img src="/assets/day-thu.svg" alt=""><img src="/assets/day-fri.svg" alt="">
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -265,7 +272,6 @@ export default function ShikhoHome() {
     const fitems = qa('.fitem');
     const featPhone = q('#featPhone');
     const featCard = q('#featCard');
-    const featDate = q('#featDate');
     let activeFeat = -1;
 
     // split text into per-word spans (same blur-reveal mechanism as the hero)
@@ -491,9 +497,8 @@ export default function ShikhoHome() {
             featProg.style.height = (h * fillFrac).toFixed(1) + 'px';
           }
         }
-        // floating cards keep a gentle parallax relative to the phone
+        // floating card keeps a gentle parallax relative to the phone
         if (featCard) featCard.style.transform = `translateY(${lerp(16, -16, fp)}px)`;
-        if (featDate) featDate.style.transform = `translateY(${lerp(-14, 14, fp)}px)`;
       }
     };
 
