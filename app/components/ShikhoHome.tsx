@@ -2,11 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 import HeroSection from './HeroSection';
+import TeachersSection from './TeachersSection';
 
 /**
  * Shikho homepage. The pinned hero is a reusable <HeroSection/> (rendered twice
  * for now so both a top and a below-stats variant can be compared). This shell
- * owns the shared page chrome (header, stats, feature grid, mentors, footer) and
+ * owns the shared page chrome (header, stats, footer) and
  * a small controller for the header tone + stats cascade.
  */
 
@@ -142,54 +143,7 @@ const FEATURE_MARKUP = `
   </section>
 `;
 
-const REST_MARKUP = `
-<!-- ============ SECONDARY FEATURE GRID ============ -->
-  <section data-dark="0" style="padding:96px 40px;background:#FBFAF7;">
-    <div style="max-width:1100px;margin:0 auto;">
-      <div style="text-align:center;margin-bottom:48px;">
-        <div style="font-family:'Hind Siliguri';font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#E2008D;margin-bottom:12px;">আরও যা পাবে</div>
-        <h2 style="font-family:'Anek Bangla';font-weight:700;font-size:clamp(30px,3.6vw,48px);margin:0;color:#161B33;">একটি অ্যাপ, সবকিছু এক জায়গায়</h2>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;">
-        <div style="background:#fff;border-radius:22px;padding:30px;box-shadow:0 10px 30px rgba(22,27,51,.05);border:1px solid #EEF0F6;">
-          <div style="width:48px;height:48px;border-radius:14px;background:#EEF2FB;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:18px;">🔍</div>
-          <h3 style="font-family:'Hind Siliguri';font-size:21px;font-weight:700;margin:0 0 8px;">সার্চ + এক্সপ্লোর</h3>
-          <p style="font-family:'Hind Siliguri';font-size:15px;line-height:1.6;color:#4A5270;margin:0;">টাইপ করে, ভয়েসে বা ব্রাউজ করে — যেকোনো চ্যাপ্টার, ক্লাস, মেন্টর বা ই-বুক মুহূর্তেই খুঁজে নাও।</p>
-        </div>
-        <div style="background:#fff;border-radius:22px;padding:30px;box-shadow:0 10px 30px rgba(22,27,51,.05);border:1px solid #EEF0F6;">
-          <div style="width:48px;height:48px;border-radius:14px;background:#FFE4EF;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:18px;">📖</div>
-          <h3 style="font-family:'Hind Siliguri';font-size:21px;font-weight:700;margin:0 0 8px;">ই-বুক</h3>
-          <p style="font-family:'Hind Siliguri';font-size:15px;line-height:1.6;color:#4A5270;margin:0;">ডিজিটাল টেক্সটবুক, ফ্ল্যাশকার্ড আর MCQ ব্যাংক — গল্পভিত্তিক ও সারাংশ আকারে সাজানো।</p>
-        </div>
-        <div style="background:#fff;border-radius:22px;padding:30px;box-shadow:0 10px 30px rgba(22,27,51,.05);border:1px solid #EEF0F6;">
-          <div style="width:48px;height:48px;border-radius:14px;background:#FFF1D6;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:18px;">♾️</div>
-          <h3 style="font-family:'Hind Siliguri';font-size:21px;font-weight:700;margin:0 0 8px;">আর্কাইভ কোর্স অ্যাক্সেস</h3>
-          <p style="font-family:'Hind Siliguri';font-size:15px;line-height:1.6;color:#4A5270;margin:0;">কোর্সের মেয়াদ শেষ হলেও কেনা কোর্স থাকবে চিরকাল — যখন খুশি ফিরে দেখো।</p>
-        </div>
-        <div style="background:#fff;border-radius:22px;padding:30px;box-shadow:0 10px 30px rgba(22,27,51,.05);border:1px solid #EEF0F6;">
-          <div style="width:48px;height:48px;border-radius:14px;background:#DEF7EA;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:18px;">📱</div>
-          <h3 style="font-family:'Hind Siliguri';font-size:21px;font-weight:700;margin:0 0 8px;">FutureBook</h3>
-          <p style="font-family:'Hind Siliguri';font-size:15px;line-height:1.6;color:#4A5270;margin:0;">QR-লিংক করা FutureLink দিয়ে তোমার বই আর অ্যাপ এক সুতোয় বাঁধা — ভিডিও দেখা ও টিউশনের অগ্রগতি একসাথে ট্র্যাক হয়।</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ MENTORS (stub) ============ -->
-  <section data-dark="0" style="padding:96px 40px;background:#F1F4FB;">
-    <div style="max-width:1100px;margin:0 auto;text-align:center;">
-      <div style="font-family:'Hind Siliguri';font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#E2008D;margin-bottom:12px;">মেন্টর</div>
-      <h2 style="font-family:'Anek Bangla';font-weight:700;font-size:clamp(30px,3.6vw,48px);margin:0 0 14px;color:#161B33;">দেশসেরা শিক্ষকদের কাছে শেখো</h2>
-      <p style="font-family:'Hind Siliguri';font-size:17px;color:#4A5270;max-width:560px;margin:0 auto 44px;">যাঁরা হাজারো শিক্ষার্থীকে স্বপ্নের প্রতিষ্ঠানে পৌঁছে দিয়েছেন।</p>
-      <div style="display:flex;justify-content:center;gap:22px;flex-wrap:wrap;">
-        <div style="width:200px;background:#fff;border-radius:18px;padding:22px;box-shadow:0 8px 24px rgba(22,27,51,.06);"><div style="width:72px;height:72px;border-radius:50%;margin:0 auto 14px;background:linear-gradient(135deg,#355DAB,#E2008D);"></div><div style="font-family:'Hind Siliguri';font-size:16px;font-weight:700;">আরিফ স্যার</div><div style="font-family:'Hind Siliguri';font-size:13px;color:#6E7691;margin-top:3px;">পদার্থবিজ্ঞান · BUET</div></div>
-        <div style="width:200px;background:#fff;border-radius:18px;padding:22px;box-shadow:0 8px 24px rgba(22,27,51,.06);"><div style="width:72px;height:72px;border-radius:50%;margin:0 auto 14px;background:linear-gradient(135deg,#FAA700,#FF1C5A);"></div><div style="font-family:'Hind Siliguri';font-size:16px;font-weight:700;">তানিয়া ম্যাম</div><div style="font-family:'Hind Siliguri';font-size:13px;color:#6E7691;margin-top:3px;">রসায়ন · DU</div></div>
-        <div style="width:200px;background:#fff;border-radius:18px;padding:22px;box-shadow:0 8px 24px rgba(22,27,51,.06);"><div style="width:72px;height:72px;border-radius:50%;margin:0 auto 14px;background:linear-gradient(135deg,#2D4797,#FAA700);"></div><div style="font-family:'Hind Siliguri';font-size:16px;font-weight:700;">সাব্বির স্যার</div><div style="font-family:'Hind Siliguri';font-size:13px;color:#6E7691;margin-top:3px;">গণিত · BUET</div></div>
-      </div>
-      <div style="font-family:'Hind Siliguri';font-size:13px;color:#9aa2bd;margin-top:30px;">+ আরও ২০ জন অভিজ্ঞ মেন্টর</div>
-    </div>
-  </section>
-
+const FOOTER_MARKUP = `
   <!-- ============ FOOTER (stub) ============ -->
   <footer data-dark="1" style="background:#0E1430;padding:64px 40px 40px;">
     <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:30px;">
@@ -515,7 +469,8 @@ export default function ShikhoHome() {
       <HeroSection />
       <div dangerouslySetInnerHTML={{ __html: STATS_MARKUP }} />
       <div dangerouslySetInnerHTML={{ __html: FEATURE_MARKUP }} />
-      <div dangerouslySetInnerHTML={{ __html: REST_MARKUP }} />
+      <TeachersSection />
+      <div dangerouslySetInnerHTML={{ __html: FOOTER_MARKUP }} />
     </div>
   );
 }

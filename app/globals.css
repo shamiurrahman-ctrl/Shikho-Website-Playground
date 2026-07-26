@@ -347,3 +347,810 @@ body {
   transform: translateY(0);
   transition: opacity 0.22s ease 0.12s, transform 0.22s ease 0.12s;
 }
+
+/* ===== Teachers roster — "দেশের সেরা শিক্ষকদের..." (matches Figma 117:21308) =====
+   Row geometry is fixed (1330x142 at desktop). Every hover effect is opacity /
+   transform / colour only, so hovering never reflows the list. */
+.tch {
+  --row-h: 142px;
+  --portrait: 142px;
+  /* Figma insets at the 1440 frame (56 / 213), scaled fluidly either side */
+  --pad: clamp(20px, 3.9vw, 72px);
+  --body-l: clamp(96px, 14.8vw, 260px);
+  --ease: cubic-bezier(0.22, 0.75, 0.28, 1);
+  --dur: 0.34s;
+  background: #fff;
+  padding: 69px 0 53px;
+  /* the cloud breaks past the row's left edge — clip it rather than scroll */
+  overflow-x: clip;
+}
+.tch-wrap {
+  width: 100%;
+  margin: 0 auto;
+}
+.tch-title {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: clamp(32px, 3.9vw, 56px);
+  line-height: 1.143;          /* 64/56 */
+  letter-spacing: -0.46px;
+  color: #161b33;
+  max-width: min(100% - 40px, 864px);
+  margin: 0 auto 52px;
+  text-align: center;
+  text-wrap: balance;          /* keeps the two Bengali lines evenly weighted */
+}
+
+.tch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* ===== scroll-into-view reveal =====
+   Same treatment as the hero / core-features headings and feature items, but
+   triggered once on intersection instead of by pinned-scroll progress:
+   the title blurs in word by word, then the rows blur in from the left in
+   sequence. `data-revealed="done"` settles everything back to the normal
+   transition timing so hover stays instant. */
+.tch-w {
+  display: inline-block;
+  white-space: pre;
+  will-change: opacity, filter, transform;
+  transition: opacity 0.6s var(--ease), filter 0.6s var(--ease), transform 0.6s var(--ease);
+  transition-delay: calc(var(--i, 0) * 55ms);
+}
+.tch:not([data-revealed]) .tch-w {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(16px);
+}
+.tch:not([data-revealed]) .tch-row,
+.tch:not([data-revealed]) .tch-more {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateX(-46px);
+}
+.tch-more {
+  transition: opacity 0.55s var(--ease), filter 0.55s var(--ease), transform 0.55s var(--ease);
+  transition-delay: 385ms;             /* lands just after the last row */
+}
+/* settled — restore the hover transition and drop the stagger */
+.tch[data-revealed='done'] .tch-row {
+  transition: opacity var(--dur) var(--ease), filter var(--dur) var(--ease), transform var(--dur) var(--ease);
+  transition-delay: 0s;
+}
+.tch[data-revealed='done'] .tch-w { will-change: auto; transition-delay: 0s; }
+
+/* ---- row shell ---- */
+.tch-row {
+  position: relative;
+  /* 142px of row + the 1px divider = the Figma's 143px stride */
+  height: calc(var(--row-h) + 1px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  perspective: 700px;          /* gives the book's rotateY real depth */
+  z-index: 1;
+  /* transform joins the transition for the scroll-in reveal below */
+  transition: opacity 0.55s var(--ease), filter 0.55s var(--ease), transform 0.55s var(--ease);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* de-emphasise every row except the hovered one */
+.tch[data-hovering='1'] .tch-row:not([data-on='1']) {
+  opacity: 0.7;
+  filter: blur(1px);
+}
+/* hovered row sits above its siblings so the tall portrait can break out */
+.tch-row[data-on='1'] { z-index: 2; }
+
+/* dark navy gradient crossfaded in over the light row (gradients can't tween,
+   so it's a separate layer whose opacity animates) */
+.tch-row-dark {
+  position: absolute;
+  inset: 0;
+  background-color: #222732;
+  /* the dotted texture Figma overlays on the active row (~9.2px grid) */
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.055) 0.6px, transparent 0.7px);
+  background-size: 9.24px 9.24px;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.tch-row[data-on='1'] .tch-row-dark { opacity: 1; }
+
+/* ---- cloud: puffs up behind the teacher, above the row fill (Figma 120:9756).
+   327x168 anchored so it sits 79px past the row's left edge and 85px above it,
+   i.e. 135px left of the portrait box. Never intercepts pointer events. ---- */
+.tch-cloud {
+  position: absolute;
+  left: calc(var(--pad) - 135px);
+  top: -85px;
+  width: 327px;
+  height: 168px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+  transform-origin: 60% bottom;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.tch-cloud img { width: 100%; height: 100%; object-fit: contain; }
+.tch-row[data-on='1'] .tch-cloud {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* ---- portrait: square default clipped to the row, tall cut-out on hover ---- */
+.tch-portrait {
+  position: absolute;
+  left: var(--pad);
+  bottom: 1px;                 /* clear the divider */
+  z-index: 2;
+  width: var(--portrait);
+  height: var(--portrait);
+}
+.tch-portrait-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.tch-portrait-def {
+  position: absolute;
+  left: -5.61px;
+  top: -10.96px;
+  width: 152.96px;
+  height: 152.96px;
+  max-width: none;
+  transition: opacity var(--dur) var(--ease);
+}
+.tch-portrait-hov {
+  position: absolute;
+  left: -29px;                 /* square asset centred on the 142px box */
+  bottom: 0;
+  width: 200px;
+  height: 200px;
+  max-width: none;
+  opacity: 0;
+  transform: translateY(4px) scale(1);
+  transform-origin: bottom center;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.tch-row[data-on='1'] .tch-portrait-def { opacity: 0; }
+.tch-row[data-on='1'] .tch-portrait-hov {
+  opacity: 1;
+  transform: translateY(0) scale(1.08);
+}
+
+/* ---- subject book: decorative, never affects layout ---- */
+.tch-book {
+  position: absolute;
+  /* The cover art sits on a square transparent canvas, filling ~63% of its width
+     and ~97.6% of its height (1%–98.6%). The box is therefore square and larger
+     than the cover; the offset below centres the *visible* cover on the row
+     rather than centring the canvas. */
+  right: 138px;
+  top: -17px;
+  width: 188px;
+  height: 188px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(24px) rotateY(12deg) scale(0.96);
+  transform-origin: 72% center;   /* the cover's right edge within the square canvas */
+  /* drop-shadow traces the cover's alpha, so the accent reads as a glow */
+  filter:
+    drop-shadow(0 0 26px color-mix(in srgb, var(--accent) 36%, transparent))
+    drop-shadow(0 12px 24px rgba(0, 0, 0, 0.38));
+  transition: opacity var(--dur) var(--ease) 0.07s, transform var(--dur) var(--ease) 0.07s;
+}
+.tch-book img { width: 100%; height: 100%; object-fit: contain; }
+.tch-row[data-on='1'] .tch-book {
+  opacity: 1;
+  transform: translateX(0) rotateY(0deg) scale(1);
+}
+
+/* ---- text ---- */
+.tch-body {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-left: var(--body-l);
+  padding-right: var(--pad);
+  z-index: 3;
+}
+.tch-main {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  /* grows with the row so the arrow never strands itself far from the meta */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tch-idblock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* Figma's 421:565 split, held as a ratio so both scale with the container */
+  flex: 421 1 0;
+  min-width: 0;
+}
+.tch-name,
+.tch-academic,
+.tch-meta {
+  font-family: 'Anek Bangla', sans-serif;
+  transition: color var(--dur) var(--ease);
+}
+.tch-name {
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 40px;
+  letter-spacing: -0.46px;
+  color: #161b33;
+}
+.tch-academic {
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 40px;
+  color: #414651;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tch-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 565 1 0;
+  min-width: 0;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 24px;
+  color: #161b33;
+  white-space: nowrap;
+}
+.tch-div {
+  flex: none;
+  width: 1px;
+  height: 9px;
+  background: #a9a9a9;
+  transition: background var(--dur) var(--ease);
+}
+.tch-row[data-on='1'] .tch-name,
+.tch-row[data-on='1'] .tch-meta { color: #fff; }
+.tch-row[data-on='1'] .tch-academic { color: #c3c6cc; }
+.tch-row[data-on='1'] .tch-div { background: #5b616d; }
+
+/* ---- arrow ---- */
+.tch-cta {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transform: scale(1);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.tch-cta-def,
+.tch-cta-hov {
+  position: absolute;
+  inset: 0;
+  width: 48px;
+  height: 48px;
+  transition: opacity var(--dur) var(--ease);
+}
+.tch-cta-hov { opacity: 0; }
+.tch-row[data-on='1'] .tch-cta {
+  transform: scale(1.06);
+  box-shadow: 0 8px 20px -4px rgba(84, 104, 255, 0.55);
+}
+.tch-row[data-on='1'] .tch-cta-def { opacity: 0; }
+.tch-row[data-on='1'] .tch-cta-hov { opacity: 1; }
+
+/* ---- "আরো দেখো" bar ---- */
+.tch-more {
+  width: min(1330px, 100% - 40px);
+  margin: 27px auto 0;
+  height: 72px;
+  border-radius: 20px;
+  background: #bad5ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 19px;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 24px;
+  color: #3b4ee3;
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1180px) {
+  .tch-name { font-size: 25px; }
+  .tch-meta { font-size: 18px; gap: 12px; }
+  .tch-book { right: 96px; }
+}
+/* Below the desktop breakpoint the Bengali strings wrap, so the row grows from a
+   floor instead of being pinned to a fixed height — the body leaves the absolute
+   layer and flows. Height is still constant *per row*, so hover never reflows. */
+@media (max-width: 980px) {
+  .tch {
+    --row-h: 168px;
+    --portrait: 120px;
+    --body-l: 148px;
+    --pad: 24px;
+  }
+  .tch-title { margin-bottom: 36px; }
+  .tch-row { height: auto; min-height: var(--row-h); }
+  .tch-body {
+    /* relative, not static: the body must keep a stacking position or the
+       absolutely-positioned dark hover fill paints straight over the text */
+    position: relative;
+    min-height: var(--row-h);
+    padding: 18px var(--pad) 18px var(--body-l);
+    gap: 16px;
+  }
+  .tch-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .tch-idblock,
+  .tch-meta { width: 100%; flex: 0 1 auto; }
+  .tch-academic { line-height: 28px; white-space: normal; }
+  .tch-name { line-height: 34px; }
+  .tch-meta { white-space: normal; flex-wrap: wrap; row-gap: 4px; }
+  .tch-portrait-def { left: -4.7px; top: -9.3px; width: 129.3px; height: 129.3px; }
+  .tch-portrait-hov { left: -25px; width: 170px; height: 170px; }
+  /* both decorations need room the stacked rows don't have */
+  .tch-book,
+  .tch-cloud { display: none; }
+}
+@media (max-width: 620px) {
+  .tch {
+    --row-h: 128px;
+    --portrait: 88px;
+    --body-l: 108px;
+    --pad: 16px;
+    padding: 48px 0 40px;
+  }
+  .tch-body {
+    display: block;
+    padding: 14px 58px 14px var(--body-l);
+  }
+  .tch-main { display: block; }
+  .tch-name { font-size: 19px; line-height: 26px; }
+  .tch-academic { font-size: 13px; line-height: 18px; margin-top: 2px; }
+  .tch-meta { font-size: 13px; line-height: 18px; gap: 8px; row-gap: 2px; margin-top: 6px; }
+  /* give the subject its own line so the row never wraps onto a dangling divider */
+  .tch-subject { flex-basis: 100%; }
+  .tch-meta .tch-div:first-of-type { display: none; }
+  .tch-cta {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    margin-top: -19px;
+    width: 38px;
+    height: 38px;
+  }
+  .tch-cta-def, .tch-cta-hov { width: 38px; height: 38px; }
+  .tch-portrait-def { left: -3.5px; top: -6.8px; width: 94.8px; height: 94.8px; }
+  .tch-portrait-hov { left: -18px; width: 124px; height: 124px; }
+  .tch-more { height: 60px; font-size: 17px; gap: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tch * { transition-duration: 0.01ms !important; }
+  .tch[data-hovering='1'] .tch-row:not([data-on='1']) { filter: none; }
+  /* show everything immediately rather than blurring/sliding it in */
+  .tch:not([data-revealed]) .tch-w,
+  .tch:not([data-revealed]) .tch-row,
+  .tch:not([data-revealed]) .tch-more {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* row hit target — sits over the row so the absolute layout above is untouched */
+.tch-row { cursor: pointer; }
+.tch-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.tch-hit:focus-visible {
+  outline: 3px solid #5468ff;
+  outline-offset: 3px;
+}
+
+/* ===== Mentor detail drawer (matches Figma 119:9343) =====
+   Panel is a fixed-height flex column: header + two-column body. The body never
+   scrolls — `.mdr-right` is the sole scroll container, so `.mdr-left` stays put
+   with no scroll listeners. Left also carries position:sticky so it stays pinned
+   if the body ever becomes the scroller. */
+.mdr {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+}
+.mdr-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  -webkit-backdrop-filter: blur(19.9px);
+  backdrop-filter: blur(19.9px);
+  opacity: 0;
+  /* identical duration + curve to the panel so the two read as one motion */
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mdr[data-open='1'] .mdr-scrim { opacity: 1; }
+
+.mdr-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(1173px, 100vw);
+  height: 100%;
+  background: #fff;
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.mdr[data-open='1'] .mdr-panel { transform: translateX(0); }
+
+/* ---- header ---- */
+.mdr-head {
+  flex: none;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-left: 32px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+.mdr-close {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 0.5px rgba(0, 0, 0, 0.04)) drop-shadow(0 3px 1.5px rgba(0, 0, 0, 0.04));
+  transition: opacity 0.2s ease;
+}
+.mdr-close:hover { opacity: 0.7; }
+.mdr-head-title {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 40px;
+  color: #414651;
+}
+
+/* ---- body: the two columns ---- */
+.mdr-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* left — sticky, fits the viewport, never scrolls on its own */
+.mdr-left {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  /* fixed basis: the right column's nowrap chips/stats would otherwise inflate
+     its min-content width and squeeze this column below the Figma 541px */
+  flex: 0 0 541px;
+  width: 541px;
+  min-width: 0;
+  max-height: 100%;
+  overflow: hidden;
+  padding: 31px 48px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 31px;
+}
+.mdr-portrait {
+  position: relative;
+  flex: none;
+  width: 243px;
+  height: 342px;
+  margin-left: 11px;
+  /* the blur layers bleed past the box on purpose — never clip them */
+  overflow: visible;
+}
+/* The hover portrait is a square canvas whose figure is bottom-flush and occupies
+   ~70%W / ~89%H. Rendering it uncropped at 365px and anchoring the bottom puts the
+   figure at the Figma's size and position without cropping or distorting it. */
+.mdr-portrait img {
+  position: absolute;
+  bottom: 0;
+  left: -71px;
+  width: 365px;
+  height: 365px;
+  max-width: none;
+}
+/* sharp — covers the head and chest, then hands off */
+.mdr-p1 {
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 86%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 86%);
+}
+/* mid blur — banded so it never haloes the sharp upper body */
+.mdr-p2 {
+  filter: blur(9px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 64%, #000 78%, #000 87%, transparent 96%);
+  mask-image: linear-gradient(to bottom, transparent 64%, #000 78%, #000 87%, transparent 96%);
+}
+/* deep blur — carries the last stretch and dissolves fully at the bottom edge */
+.mdr-p3 {
+  filter: blur(24px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 80%, #000 91%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 80%, #000 91%, transparent 100%);
+}
+
+.mdr-idblock {
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+  width: 100%;
+  max-width: 431px;
+}
+.mdr-name {
+  margin: 0;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 48px;
+  color: #000;
+}
+.mdr-subjrow { display: flex; align-items: center; gap: 7px; }
+.mdr-bookicon { flex: none; width: 78px; height: 78px; object-fit: contain; }
+.mdr-subjtext { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.mdr-subject {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 24px;
+  color: #161b33;
+}
+.mdr-academic {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 22px;
+  color: #414651;
+}
+
+.mdr-achv {
+  list-style: none;
+  margin: 0;
+  padding: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mdr-achv-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 24px;
+  color: #0a0c11;
+}
+.mdr-achv-item img { flex: none; width: 32px; height: 34px; }
+
+/* right — the only scroll container; scrollbar hidden, scrolling intact */
+.mdr-right {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  border-left: 1px solid rgba(0, 0, 0, 0.12);
+  /* 34px + the 6px scrollbar = the Figma's 40px inset, so showing the scrollbar
+     leaves the content box exactly where it was */
+  padding: 40px 34px 40px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 47px;
+}
+/* Firefox only: setting the standard properties makes Chrome ignore the
+   ::-webkit-scrollbar rules below (and forces an 11px bar), so gate them. */
+@supports not selector(::-webkit-scrollbar) {
+  .mdr-right {
+    scrollbar-width: thin;
+    scrollbar-color: #c5cad4 #f3f4f6;
+  }
+}
+/* thin always-on scrollbar — styling ::-webkit-scrollbar also opts Chrome out of
+   auto-hiding overlay scrollbars, so it stays visible whenever content overflows */
+.mdr-right::-webkit-scrollbar { width: 6px; }
+.mdr-right::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 999px;
+  margin: 40px 0;              /* keeps the track off the top/bottom edges */
+}
+.mdr-right::-webkit-scrollbar-thumb {
+  background: #c5cad4;
+  border-radius: 999px;
+}
+.mdr-right::-webkit-scrollbar-thumb:hover { background: #a8b0bd; }
+
+.mdr-video {
+  position: relative;
+  flex: none;
+  width: 100%;
+  aspect-ratio: 552 / 311;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #0a0c11;
+}
+.mdr-video iframe,
+.mdr-video-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+.mdr-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.49);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.mdr-play img { transform: rotate(90deg) translateX(-1px); }
+.mdr-play:hover:not(:disabled) { transform: translate(-50%, -50%) scale(1.06); }
+.mdr-play:disabled { cursor: default; }
+
+/* every right-column section shares this rhythm, so new blocks (Popular Courses,
+   Reviews, FAQ…) can simply be appended inside .mdr-sections */
+.mdr-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.mdr-stats { display: flex; align-items: center; gap: 68px; height: 59px; }
+.mdr-stat { display: flex; flex-direction: column; justify-content: center; gap: 13px; white-space: nowrap; }
+.mdr-stat-v {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 24px;
+  color: #161b33;
+}
+.mdr-stat-l {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 22px;
+  color: #414651;
+}
+.mdr-stat-div { flex: none; width: 1px; height: 28px; background: #a9a9a9; }
+
+.mdr-block { display: flex; flex-direction: column; gap: 20px; }
+.mdr-h {
+  margin: 0;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 24px;
+  color: #000;
+}
+.mdr-learn {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 24px;
+  color: #0a0c11;
+}
+.mdr-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mdr-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 15px;
+  border-radius: 46px;
+  background: #ebecf0;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 24px;
+  color: #0a0c11;
+  white-space: nowrap;
+}
+
+/* ---- tablet & mobile: stack, drop sticky, body becomes the scroller ---- */
+@media (max-width: 980px) {
+  .mdr-panel { width: 100vw; }
+  .mdr-body {
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .mdr-body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+  .mdr-left {
+    position: static;
+    flex: none;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding: 28px 32px 32px;
+  }
+  .mdr-right {
+    flex: none;
+    overflow: visible;
+    border-left: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+    padding: 32px;
+    gap: 36px;
+  }
+}
+@media (max-width: 620px) {
+  .mdr-head { padding-left: 16px; gap: 12px; }
+  .mdr-left { padding: 20px 20px 24px; gap: 24px; }
+  .mdr-portrait { width: 186px; height: 262px; margin-left: 0; }
+  .mdr-portrait img { width: 279px; height: 279px; left: -54px; }
+  .mdr-name { font-size: 30px; line-height: 38px; }
+  .mdr-idblock { gap: 26px; }
+  .mdr-right { padding: 20px; gap: 28px; }
+  .mdr-sections { gap: 32px; }
+  .mdr-stats { gap: 32px; }
+  .mdr-stat-v { font-size: 26px; }
+  .mdr-achv-item, .mdr-learn { font-size: 18px; }
+  .mdr-chip { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdr-panel, .mdr-scrim { transition-duration: 0.01ms; }
+  .mdr-right, .mdr-body { scroll-behavior: auto; }
+}
