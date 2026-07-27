@@ -176,16 +176,6 @@ export default function MentorDrawer({
               </div>
             </div>
 
-            {t.achievements.length > 0 && (
-              <ul className="mdr-achv">
-                {t.achievements.map((a) => (
-                  <li className="mdr-achv-item" key={a}>
-                    <Image src="/assets/teachers/icon-achievement.svg" alt="" width={32} height={34} />
-                    <span>{a}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </aside>
 
           {/* ---- right column: the only scroll container ---- */}
@@ -233,6 +223,17 @@ export default function MentorDrawer({
                   <span className="mdr-stat-l">শিক্ষার্থী পড়িয়েছেন</span>
                 </div>
               </div>
+
+              {t.achievements.length > 0 && (
+                <ul className="mdr-achv">
+                  {t.achievements.map((a) => (
+                    <li className="mdr-achv-item" key={a}>
+                      <Image src="/assets/teachers/icon-achievement.svg" alt="" width={32} height={34} />
+                      <span>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {t.learn.length > 0 && (
                 <section className="mdr-block">

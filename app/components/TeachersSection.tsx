@@ -177,10 +177,24 @@ export default function TeachersSection() {
           ))}
         </ul>
 
-        {/* "see more" bar from the Figma — awaiting a destination for the roster page */}
-        <div className="tch-more">
-          <span>আরো দেখো</span>
-          <Image src="/assets/teachers/cta-arrow.svg" alt="" width={30} height={15} />
+        {/* roster CTA (Figma 121:486) — reads as a continuation of the list, not a card.
+            Still awaiting a destination for the "all mentors" page. */}
+        <div className="tch-cta-row">
+          <div className="tch-cta-left">
+            <div className="tch-avatars">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Image key={n} src={`/assets/teachers/avatar-${n}.png`} alt="" width={64} height={64} />
+              ))}
+            </div>
+            <p className="tch-cta-copy">
+              আরও <strong>২০+ সেরা মেন্টর</strong> আছে তোমার অপেক্ষায়
+            </p>
+          </div>
+
+          <button className="tch-cta-btn" type="button">
+            <span>সব মেন্টর দেখো</span>
+            <Image src="/assets/teachers/icon-chevron.svg" alt="" width={9} height={15} />
+          </button>
         </div>
       </div>
 
