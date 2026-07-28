@@ -16,6 +16,10 @@ import { posterFor, STORIES, type Story } from './testimonials';
  */
 
 const CROSSFADE_MS = 300;
+/** how long each story holds before the carousel advances itself */
+const STORY_MS = 26_000;
+/** circumference of the progress ring (2πr, r=14) */
+const RING_CIRC = 87.9646;
 
 /* ---------------- background player ---------------- */
 
@@ -166,9 +170,11 @@ function QuoteCard({ story }: { story: Story }) {
 function ThumbnailList({
   activeIndex,
   onSelect,
+  ringRef,
 }: {
   activeIndex: number;
   onSelect: (i: number) => void;
+  ringRef: React.RefObject<SVGCircleElement | null>;
 }) {
   return (
     <div className="tst-thumbs" role="tablist" aria-label="গল্প নির্বাচন করো">
@@ -184,11 +190,13 @@ function ThumbnailList({
           onClick={() => onSelect(i)}
         >
           <Image src={s.thumbnail} alt="" width={171} height={96} />
+          {/* the ring only exists on the active thumb, and remounts per story, so a
+              stale timer can never keep painting onto an inactive one */}
           {i === activeIndex && (
             <span className="tst-thumb-ring" aria-hidden>
               <svg viewBox="0 0 38 38" focusable="false">
                 <circle className="tst-ring-track" cx="19" cy="19" r="14" />
-                <circle className="tst-ring-fill" cx="19" cy="19" r="14" />
+                <circle ref={ringRef} className="tst-ring-fill" cx="19" cy="19" r="14" />
               </svg>
             </span>
           )}
@@ -206,18 +214,54 @@ export default function TestimonialSection() {
   const [switching, setSwitching] = useState(false);
   const active = STORIES[activeIndex];
 
+  const ringRef = useRef<SVGCircleElement | null>(null);
+  const elapsedRef = useRef(0);
+
+  const goTo = useCallback((i: number) => {
+    // brief dip on the overlay/card so the swap reads as a cinematic cut
+    setSwitching(true);
+    setActiveIndex(i);
+    window.setTimeout(() => setSwitching(false), CROSSFADE_MS);
+  }, []);
+
   const select = useCallback(
     (i: number) => {
       if (i === activeIndex) return;
-      // brief dip on the overlay/card so the swap reads as a cinematic cut
-      setSwitching(true);
-      setActiveIndex(i);
-      window.setTimeout(() => setSwitching(false), CROSSFADE_MS);
+      goTo(i);
     },
-    [activeIndex],
+    [activeIndex, goTo],
   );
 
-  useEffect(() => () => setSwitching(false), []);
+  // a new story always starts its ring from zero, however it was reached
+  useEffect(() => {
+    elapsedRef.current = 0;
+    if (ringRef.current) ringRef.current.style.strokeDashoffset = String(RING_CIRC);
+  }, [activeIndex]);
+
+  /**
+   * Story timer. Drives the ring straight through the DOM rather than React state
+   * so the 26s fill doesn't cost a re-render per frame. Elapsed time lives in a ref,
+   * so pausing (modal open) resumes exactly where it left off instead of restarting.
+   */
+  const paused = !!modalStory;
+  useEffect(() => {
+    if (paused) return;
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      elapsedRef.current += now - last;
+      last = now;
+      const p = Math.min(elapsedRef.current / STORY_MS, 1);
+      if (ringRef.current) ringRef.current.style.strokeDashoffset = String(RING_CIRC * (1 - p));
+      if (p >= 1) {
+        goTo((activeIndex + 1) % STORIES.length); // wraps past the last story
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paused, activeIndex, goTo]);
 
   return (
     <section className="tst" data-dark="0">
@@ -237,7 +281,7 @@ export default function TestimonialSection() {
               key={s.id}
               story={s}
               active={i === activeIndex}
-              paused={!!modalStory}
+              paused={paused}
               eager={i === 0}
             />
           ))}
@@ -251,7 +295,7 @@ export default function TestimonialSection() {
           </div>
 
           <StoryOverlay story={active} onPlay={() => setModalStory(active)} />
-          <ThumbnailList activeIndex={activeIndex} onSelect={select} />
+          <ThumbnailList activeIndex={activeIndex} onSelect={select} ringRef={ringRef} />
         </div>
 
         <QuoteCard story={active} />
