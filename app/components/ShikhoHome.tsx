@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import HeroSection from './HeroSection';
 import TeachersSection from './TeachersSection';
+import TestimonialSection from './TestimonialSection';
 
 /**
  * Shikho homepage. The pinned hero is a reusable <HeroSection/> (rendered twice
@@ -470,6 +471,7 @@ export default function ShikhoHome() {
       <div dangerouslySetInnerHTML={{ __html: STATS_MARKUP }} />
       <div dangerouslySetInnerHTML={{ __html: FEATURE_MARKUP }} />
       <TeachersSection />
+      <TestimonialSection />
       <div dangerouslySetInnerHTML={{ __html: FOOTER_MARKUP }} />
     </div>
   );

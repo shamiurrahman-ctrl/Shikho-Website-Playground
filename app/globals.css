@@ -1232,3 +1232,408 @@ body {
   .mdr-panel, .mdr-scrim { transition-duration: 0.01ms; }
   .mdr-right, .mdr-body { scroll-behavior: auto; }
 }
+
+/* ===== Testimonials — "Shikho-র সাথে বদলে যাওয়া গল্পগুলো" (Figma 132:11330) =====
+   1440 frame: stage 1328x748 inset 56px, radius 24. Everything inside the stage is
+   positioned against it, so the whole block scales with the container. */
+.tst {
+  --stage-pad: 56px;
+  --ease: cubic-bezier(0.22, 0.75, 0.28, 1);
+  background: #fff;
+  padding: 89px 0 46px;
+  overflow-x: clip;
+}
+.tst-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  text-align: center;
+  letter-spacing: -0.46px;
+  margin: 0 auto 39px;
+  padding: 0 24px;
+}
+.tst-title {
+  margin: 0;
+  max-width: 916px;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: clamp(32px, 3.9vw, 56px);
+  line-height: 1.143;
+  color: #161b33;
+}
+.tst-sub {
+  margin: 0;
+  max-width: 612px;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 400;
+  font-size: clamp(17px, 1.7vw, 24px);
+  line-height: 1.333;
+  color: #5b616d;
+}
+
+/* ---- stage ---- */
+.tst-frame {
+  position: relative;
+  /* fluid rather than pinned to the Figma's 1328px, so the stage keeps growing on
+     large monitors instead of stranding wide side gutters. 94vw leaves ~6vw of
+     total breathing room; the cap stops it going full-bleed. */
+  width: min(94vw, 1800px);
+  margin: 0 auto;
+}
+.tst-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1328 / 748;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #0a0c11;
+  isolation: isolate;
+}
+
+/* ---- background player: one layer per story, crossfaded ---- */
+.tst-bg-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+  will-change: opacity;
+}
+.tst-bg-layer[data-active='1'] { opacity: 1; }
+.tst-bg-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tst-bg-media {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+  /* overscan hides the embed's edges/branding so no YouTube chrome is visible */
+  transform: translate(-50%, -50%) scale(1.35);
+  pointer-events: none;
+}
+.tst-bg-layer video.tst-bg-media { transform: translate(-50%, -50%); }
+
+/* ---- left scrim: progressive blur + readability gradient ---- */
+.tst-scrim {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 54.7%;
+  pointer-events: none;
+  z-index: 1;
+}
+.tst-blur,
+.tst-grad { position: absolute; inset: 0; display: block; }
+/* three stacked bands, each blurrier and cut off sooner, so the softening ramps
+   up toward the left edge instead of sitting as one flat sheet */
+.tst-blur-1 {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 72%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 72%);
+}
+.tst-blur-2 {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 18%, transparent 50%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 18%, transparent 50%);
+}
+.tst-blur-3 {
+  -webkit-backdrop-filter: blur(45px);
+  backdrop-filter: blur(45px);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 28%);
+  mask-image: linear-gradient(90deg, #000 0%, transparent 28%);
+}
+.tst-grad {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.38) 25.4%, rgba(0, 0, 0, 0) 100%);
+  transition: opacity 0.3s var(--ease);
+}
+.tst-stage:hover .tst-grad { opacity: 1.12; }
+
+/* ---- story title + play CTA ---- */
+.tst-overlay-content,
+.tst-quote { transition: opacity 0.25s var(--ease); }
+.tst-frame[data-switching='1'] .tst-overlay-content,
+.tst-frame[data-switching='1'] .tst-quote { opacity: 0; }
+.tst-overlay-content {
+  position: absolute;
+  left: var(--stage-pad);
+  top: 8.3%;
+  width: 40.6%;                        /* 539 / 1328 */
+  z-index: 2;
+}
+.tst-story-title {
+  margin: 0;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: clamp(26px, 3.9vw, 56px);
+  line-height: 1.143;
+  letter-spacing: -0.46px;
+  color: #fff;
+}
+.tst-play-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 6.5%;
+}
+.tst-play {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.22s var(--ease);
+}
+.tst-play img { width: 100%; height: 100%; display: block; }
+.tst-stage:hover .tst-play,
+.tst-play:hover { transform: scale(1.08); }
+.tst-play:focus-visible { outline: 3px solid #5468ff; outline-offset: 4px; }
+.tst-play-label {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 24px;
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(255, 255, 255, 0.72);
+  transition: text-decoration-color 0.22s var(--ease);
+}
+.tst-play-label:hover { text-decoration-color: #fff; }
+
+/* ---- glass quote card ---- */
+.tst-quote {
+  position: absolute;
+  right: 1.8%;
+  bottom: 3.2%;
+  width: 53%;                          /* 704 / 1328 */
+  z-index: 3;
+  margin: 0;
+  padding: 45px 40px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+  border: 2px solid rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+.tst-quote-icon {
+  position: absolute;
+  left: 33px;
+  top: -31px;
+  width: 66px;
+  height: 66px;
+}
+.tst-quote-text {
+  margin: 0;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: clamp(20px, 2.4vw, 32px);
+  line-height: 1.25;
+  letter-spacing: -0.46px;
+  color: #0a0c11;
+}
+.tst-quote-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  letter-spacing: -0.46px;
+}
+.tst-quote-author {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: clamp(20px, 2.1vw, 28px);
+  line-height: 1.143;
+  color: #0a0c11;
+}
+.tst-quote-detail {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 500;
+  font-size: clamp(14px, 1.3vw, 18px);
+  line-height: 1.333;
+  color: #5b616d;
+}
+
+/* ---- thumbnail navigation ---- */
+.tst-thumbs {
+  position: absolute;
+  left: var(--stage-pad);
+  bottom: 7.8%;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.tst-thumb {
+  position: relative;
+  flex: none;
+  width: 85.25px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.46);
+  cursor: pointer;
+  overflow: hidden;
+  opacity: 0.7;
+  transform: scale(0.95);
+  transform-origin: bottom center;
+  transition: transform 0.25s var(--ease), opacity 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.tst-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tst-thumb:hover { transform: scale(1); }
+.tst-thumb[data-active='1'] {
+  width: 116px;
+  height: 69px;
+  opacity: 1;
+  transform: scale(1);
+  border-radius: 9.2px;
+  padding: 4.6px;
+  box-shadow: 0 0 0 2px #5468ff;
+  -webkit-backdrop-filter: blur(4.4px);
+  backdrop-filter: blur(4.4px);
+}
+.tst-thumb[data-active='1'] img { border-radius: 6.4px; }
+.tst-thumb:focus-visible { outline: 3px solid #5468ff; outline-offset: 3px; }
+.tst-thumb-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.tst-thumb-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.tst-ring-track { fill: none; stroke: rgba(221, 223, 228, 0.71); stroke-width: 10; }
+.tst-ring-fill {
+  fill: none;
+  stroke: #5468ff;
+  stroke-width: 10;
+  stroke-dasharray: 87.96;             /* 2πr, r=14 */
+  stroke-dashoffset: 65.97;            /* 25% — matches the Figma's arc */
+}
+
+/* ===== testimonial video modal ===== */
+.tvm {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+.tvm-scrim {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+.tvm[data-open='1'] .tvm-scrim { opacity: 0.6; }
+.tvm-panel {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100%);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  will-change: transform, opacity;
+}
+.tvm[data-open='1'] .tvm-panel { opacity: 1; transform: scale(1); }
+.tvm-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+.tvm-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.tvm-close {
+  position: absolute;
+  top: -48px;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.tvm-close:hover { background: rgba(255, 255, 255, 0.26); }
+.tvm-close svg { width: 22px; height: 22px; }
+.tvm-close:focus-visible { outline: 3px solid #5468ff; outline-offset: 3px; }
+
+/* ---- responsive ---- */
+@media (max-width: 1100px) {
+  .tst { --stage-pad: 32px; }
+  .tst-overlay-content { width: 52%; top: 7%; }
+  .tst-quote { width: 62%; padding: 38px 28px 26px; gap: 18px; }
+  .tst-play { width: 52px; height: 52px; }
+}
+@media (max-width: 780px) {
+  .tst { --stage-pad: 20px; padding: 56px 0 40px; }
+  .tst-head { gap: 16px; margin-bottom: 28px; }
+  .tst-frame { width: min(1328px, 100% - 40px); }
+  /* stage stays a 16:9 video; the card drops below it in normal flow */
+  .tst-stage { aspect-ratio: 16 / 9; border-radius: 18px; }
+  .tst-blur-1, .tst-blur-2, .tst-blur-3 { display: none; }
+  .tst-scrim { width: 100%; }
+  .tst-grad {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.2) 55%, rgba(0, 0, 0, 0.72) 100%);
+  }
+  .tst-overlay-content { top: 6%; width: calc(100% - var(--stage-pad) * 2); }
+  /* more overscan so the embed's own chrome stays outside the small stage */
+  .tst-bg-layer iframe.tst-bg-media { transform: translate(-50%, -50%) scale(1.75); }
+  .tst-play-row { margin-top: 14px; }
+  .tst-play { width: 44px; height: 44px; }
+  .tst-play-label { font-size: 16px; }
+  .tst-thumbs { bottom: 12px; gap: 6px; }
+  .tst-thumb { width: 58px; height: 33px; }
+  .tst-thumb[data-active='1'] { width: 78px; height: 46px; padding: 3px; border-radius: 7px; }
+  .tst-thumb-ring { width: 24px; height: 24px; }
+  .tst-quote {
+    position: static;
+    width: auto;
+    margin: 34px 0 0;
+    padding: 34px 22px 22px;
+    gap: 16px;
+  }
+  .tst-quote-icon { width: 48px; height: 48px; left: 22px; top: -22px; }
+  .tvm { padding: 16px; }
+  .tvm-close { top: -44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tst-bg-layer, .tst-fade, .tst-thumb, .tst-play, .tvm-panel, .tvm-scrim {
+    transition-duration: 0.01ms;
+  }
+}
