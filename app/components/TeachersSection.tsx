@@ -145,6 +145,7 @@ export default function TeachersSection() {
       className="tch"
       ref={sectionRef}
       data-dark="0"
+      data-navbar-theme="light"
       data-revealed={reveal || undefined}
       data-hovering={active ? '1' : undefined}
     >

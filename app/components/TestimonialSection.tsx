@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import VideoModal from './VideoModal';
 import { posterFor, STORIES, type Story } from './testimonials';
 
@@ -23,6 +23,12 @@ const RING_CIRC = 87.9646;
 
 /* ---------------- background player ---------------- */
 
+/** temporary switch-diagnostics — flip to false to silence */
+const DEBUG = true;
+const log = (...a: unknown[]) => {
+  if (DEBUG) console.log('[testimonial]', ...a);
+};
+
 /** background embed params — captions, annotations and chrome all suppressed */
 const BG_PARAMS = [
   'autoplay=1',
@@ -37,115 +43,190 @@ const BG_PARAMS = [
   'iv_load_policy=3', // no annotations
   'cc_load_policy=0', // don't force captions on
   'cc_lang_pref=', // and don't inherit a caption language preference
-  'enablejsapi=1', // lets us hard-disable the captions module below
+  'enablejsapi=1', // player-state events + the captions kill below
 ].join('&');
 
-function BackgroundVideo({
+/** frames to settle after PLAYING before we trust the embed to be chrome-free */
+const SAFETY_MS = 400;
+
+type LayerState = 'front' | 'next' | 'leaving';
+
+/**
+ * One story's background. Rendered as an independent layer so switching is a
+ * double-buffer: the incoming story mounts as `next` (opacity 0 + visibility
+ * hidden, poster opaque over its iframe), reports readiness, and only then is
+ * promoted to `front` and crossfaded over the outgoing `leaving` layer. A
+ * newly-mounted iframe is therefore never in a visible layer at any opacity.
+ */
+function StoryLayer({
   story,
-  active,
+  state,
   paused,
   eager,
+  onReady,
 }: {
   story: Story;
-  active: boolean;
+  state: LayerState;
   paused: boolean;
   eager: boolean;
+  onReady: (id: string) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const [ready, setReady] = useState(false);
+  const readyRef = useRef(false);
 
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (active && !paused) void v.play().catch(() => {});
-    else v.pause();
-  }, [active, paused]);
-
-  /**
-   * cc_load_policy alone only stops captions being *forced* on — a viewer whose
-   * YouTube account defaults to captions would still get them burned over the
-   * background. Unloading the captions module via the embed's postMessage API is
-   * the only way to guarantee they never appear. Retried because the module can
-   * finish loading slightly after the iframe fires onLoad.
-   */
-  const disableCaptions = useCallback(() => {
-    const w = frameRef.current?.contentWindow;
-    if (!w) return;
-    const send = (func: string, args: unknown[]) => {
-      try {
-        w.postMessage(JSON.stringify({ event: 'command', func, args }), 'https://www.youtube.com');
-      } catch {
-        /* cross-origin hiccup — the retries below cover it */
-      }
-    };
-    // module name differs across player versions; both are harmless no-ops
-    send('unloadModule', ['captions']);
-    send('unloadModule', ['cc']);
+  /** post a command to the embed */
+  const send = useCallback((func: string, args: unknown[] = []) => {
+    try {
+      frameRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func, args }),
+        'https://www.youtube.com',
+      );
+    } catch {
+      /* cross-origin hiccup */
+    }
   }, []);
 
+  /** PLAYING -> two rendered frames -> safety delay -> declare ready */
+  const settleThenReady = useCallback(() => {
+    if (readyRef.current) return;
+    readyRef.current = true;
+    log('player reports PLAYING', story.id);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        window.setTimeout(() => {
+          log('safety delay completed', story.id);
+          setReady(true);
+          onReady(story.id);
+        }, SAFETY_MS),
+      ),
+    );
+  }, [story.id, onReady]);
+
+  /* ---- YouTube path: listen for real player state ---- */
   useEffect(() => {
-    if (story.videoSrc || !active || paused) return;
-    const timers = [300, 1200, 2500].map((d) => window.setTimeout(disableCaptions, d));
-    return () => timers.forEach(clearTimeout);
-  }, [story.videoSrc, active, paused, disableCaptions]);
+    if (story.videoSrc) return;
+    const onMessage = (e: MessageEvent) => {
+      if (!e.origin.includes('youtube.com')) return;
+      try {
+        const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (d?.info?.playerState === 1) settleThenReady();
+      } catch {
+        /* not a player payload */
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [story.videoSrc, settleThenReady]);
+
+  const onFrameLoad = useCallback(() => {
+    log('iframe mounted', story.id, `(state=${state})`);
+    // opt into player-state events, and hard-disable captions
+    try {
+      frameRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'listening' }),
+        'https://www.youtube.com',
+      );
+    } catch {
+      /* fallback below */
+    }
+    send('unloadModule', ['captions']);
+    send('unloadModule', ['cc']);
+    // the postMessage surface is undocumented — never strand a layer unrevealed
+    window.setTimeout(settleThenReady, 2600);
+  }, [story.id, state, send, settleThenReady]);
+
+  /* ---- pause/resume WITHOUT unmounting (a remount would re-expose chrome) ---- */
+  useEffect(() => {
+    if (story.videoSrc) {
+      const v = videoRef.current;
+      if (!v) return;
+      if (paused) v.pause();
+      else void v.play().catch(() => {});
+      return;
+    }
+    send(paused ? 'pauseVideo' : 'playVideo');
+  }, [paused, story.videoSrc, send]);
 
   return (
-    <div className="tst-bg-layer" data-active={active ? '1' : undefined}>
-      {/* poster sits under the player so switching never flashes black */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="tst-bg-poster" src={posterFor(story)} alt="" loading={eager ? 'eager' : 'lazy'} />
-
+    <div className="tst-bg-layer" data-state={state}>
       {story.videoSrc ? (
         <video
           ref={videoRef}
           className="tst-bg-media"
           src={story.videoSrc}
           poster={posterFor(story)}
+          autoPlay
           muted
           loop
           playsInline
-          preload={eager ? 'metadata' : 'none'}
+          preload={eager ? 'metadata' : 'auto'}
+          // no `controls` attribute at all — plus every native affordance off
+          disablePictureInPicture
+          disableRemotePlayback
+          controlsList="nodownload noplaybackrate nofullscreen noremoteplayback"
+          tabIndex={-1}
+          onCanPlay={settleThenReady}
         />
       ) : (
-        /* no local mp4 yet — a chrome-less muted YouTube embed stands in. Only the
-           active, unpaused story mounts an iframe, so nothing loads in the background. */
-        active &&
-        !paused && (
-          <iframe
-            ref={frameRef}
-            className="tst-bg-media"
-            src={
-              `https://www.youtube.com/embed/${story.youtubeId}` +
-              `?playlist=${story.youtubeId}&${BG_PARAMS}`
-            }
-            title=""
-            aria-hidden
-            tabIndex={-1}
-            allow="autoplay; encrypted-media"
-            onLoad={disableCaptions}
-          />
-        )
+        <iframe
+          ref={frameRef}
+          className="tst-bg-media"
+          src={`https://www.youtube.com/embed/${story.youtubeId}?playlist=${story.youtubeId}&${BG_PARAMS}`}
+          title=""
+          aria-hidden
+          tabIndex={-1}
+          allow="autoplay; encrypted-media"
+          onLoad={onFrameLoad}
+        />
       )}
+
+      {/* opaque until THIS layer is proven safe; while preparing the layer is
+          hidden anyway, so the drop is never seen */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className="tst-bg-poster"
+        data-hide={ready ? '1' : undefined}
+        src={posterFor(story)}
+        alt=""
+        loading={eager ? 'eager' : 'lazy'}
+      />
     </div>
   );
 }
 
+/* ---------------- per-word blur reveal ---------------- */
+
+/**
+ * Splits a string into per-word spans carrying a stagger index, matching the
+ * hero and teachers treatment (opacity + blur(10px) + translateY(16px)).
+ * Real space text nodes sit between the spans so wrapping still works.
+ * The stagger is capped so a long quote doesn't take a second to land.
+ */
+function blurWords(text: string, offset = 0) {
+  return text.split(' ').map((w, i) => (
+    <Fragment key={`${w}-${i}`}>
+      {i > 0 && ' '}
+      <span className="tst-w" style={{ ['--i' as string]: Math.min(i + offset, 16) }}>
+        {w}
+      </span>
+    </Fragment>
+  ));
+}
+
 /* ---------------- left overlay: title + play CTA ---------------- */
 
-function StoryOverlay({ story, onPlay }: { story: Story; onPlay: () => void }) {
+/** Static section label + divider sit above the story title and never change. */
+function StoryOverlay({ story }: { story: Story }) {
   return (
     <div className="tst-overlay-content">
+      <h2 className="tst-eyebrow">{blurWords('Shikho-র সাথে বদলে যাওয়া গল্পগুলো')}</h2>
+      <span className="tst-divider" aria-hidden />
+      {/* keyed on the story so the reveal replays on every switch */}
       <h3 className="tst-story-title" key={story.id}>
-        {story.title}
+        {blurWords(story.title)}
       </h3>
-      <div className="tst-play-row">
-        <button className="tst-play" type="button" onClick={onPlay} aria-label={`${story.title} — ভিডিয়ো দেখো`}>
-          <Image src="/assets/testimonials/play-button.svg" alt="" width={64} height={64} />
-        </button>
-        <button className="tst-play-label" type="button" onClick={onPlay} tabIndex={-1}>
-          ভিডিয়ো দেখো
-        </button>
-      </div>
     </div>
   );
 }
@@ -156,10 +237,10 @@ function QuoteCard({ story }: { story: Story }) {
   return (
     <figure className="tst-quote" key={story.id}>
       <Image className="tst-quote-icon" src="/assets/testimonials/quote-icon.svg" alt="" width={66} height={66} />
-      <blockquote className="tst-quote-text">{story.quote}</blockquote>
+      <blockquote className="tst-quote-text">{blurWords(story.quote)}</blockquote>
       <figcaption className="tst-quote-info">
-        <span className="tst-quote-author">{story.author}</span>
-        <span className="tst-quote-detail">{story.detail}</span>
+        <span className="tst-quote-author">{blurWords(story.author, 6)}</span>
+        <span className="tst-quote-detail">{blurWords(story.detail, 9)}</span>
       </figcaption>
     </figure>
   );
@@ -187,7 +268,11 @@ function ThumbnailList({
           aria-selected={i === activeIndex}
           aria-label={s.title}
           data-active={i === activeIndex ? '1' : undefined}
-          onClick={() => onSelect(i)}
+          // stop the click reaching the stage, which would open the modal
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(i);
+          }}
         >
           <Image src={s.thumbnail} alt="" width={171} height={96} />
           {/* the ring only exists on the active thumb, and remounts per story, so a
@@ -212,17 +297,69 @@ export default function TestimonialSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [modalStory, setModalStory] = useState<Story | null>(null);
   const [switching, setSwitching] = useState(false);
-  const active = STORIES[activeIndex];
+  /* double-buffer: `front` is on screen, `next` prepares invisibly, `leaving`
+     lingers under the crossfade just long enough to be faded over */
+  const [frontStory, setFrontStory] = useState<Story>(STORIES[0]);
+  const [nextStory, setNextStory] = useState<Story | null>(null);
+  const [leavingStory, setLeavingStory] = useState<Story | null>(null);
+  const active = frontStory;
 
   const ringRef = useRef<SVGCircleElement | null>(null);
   const elapsedRef = useRef(0);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const ptr = useRef({ x: 0, y: 0, cx: 0, cy: 0 });
+  const [cursorOn, setCursorOn] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [revealed, setRevealed] = useState(false);
 
-  const goTo = useCallback((i: number) => {
-    // brief dip on the overlay/card so the swap reads as a cinematic cut
-    setSwitching(true);
-    setActiveIndex(i);
-    window.setTimeout(() => setSwitching(false), CROSSFADE_MS);
-  }, []);
+  /**
+   * Selecting only *stages* a story. Thumbnails and the timer respond at once,
+   * but the visible story (background + title + card) doesn't change until the
+   * incoming layer reports it's fully prepared — see onLayerReady.
+   */
+  const goTo = useCallback(
+    (i: number) => {
+      setActiveIndex(i);
+      const target = STORIES[i];
+      if (target.id === frontStory.id) {
+        setNextStory(null); // selected back onto what's already showing
+        return;
+      }
+      // Re-selecting the story that's mid-way through fading out: it's still
+      // mounted and playing, so reverse the crossfade rather than staging a
+      // second copy of it (which would collide with the leaving layer).
+      if (leavingStory && target.id === leavingStory.id) {
+        log('reversing crossfade back to', target.id);
+        setNextStory(null);
+        setLeavingStory(frontStory);
+        setFrontStory(target);
+        return;
+      }
+      log('staging next story', target.id);
+      setNextStory(target);
+    },
+    [frontStory, leavingStory],
+  );
+
+  /** the staged layer is safe to show: crossfade it over the outgoing one */
+  const onLayerReady = useCallback(
+    (id: string) => {
+      setNextStory((pending) => {
+        if (!pending || pending.id !== id) return pending;
+        log('crossfade started', id);
+        setSwitching(true);
+        setLeavingStory(frontStory);
+        setFrontStory(pending);
+        window.setTimeout(() => {
+          setSwitching(false);
+          setLeavingStory(null);
+          log('previous iframe removed', frontStory.id);
+        }, CROSSFADE_MS + 250);
+        return null;
+      });
+    },
+    [frontStory],
+  );
 
   const select = useCallback(
     (i: number) => {
@@ -263,26 +400,120 @@ export default function TestimonialSection() {
     return () => cancelAnimationFrame(raf);
   }, [paused, activeIndex, goTo]);
 
-  return (
-    <section className="tst" data-dark="0">
-      <header className="tst-head">
-        <h2 className="tst-title">Shikho-র সাথে বদলে যাওয়া গল্পগুলো</h2>
-        <p className="tst-sub">
-          দেশের বিভিন্ন প্রান্তের শিক্ষার্থীরা কীভাবে Shikho-র সাথে নিজেদের লক্ষ্য অর্জন করেছে, শুনে নাও তাদের মুখেই।
-        </p>
-      </header>
+  // hold the word reveal until the scene is actually on screen
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting) return;
+        setRevealed(true);
+        io.disconnect();
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
+  /* ---- floating play cursor over the video ---- */
+
+  /** anything that owns its own pointer behaviour keeps the normal cursor */
+  const INTERACTIVE = 'button, a, [role="tab"], .tst-quote';
+  const isInteractive = (t: EventTarget | null) =>
+    !!(t as HTMLElement | null)?.closest?.(INTERACTIVE);
+
+  /** suppression is written straight to the node so mousemove costs no re-render */
+  const suppress = useCallback((v: boolean) => {
+    const el = cursorRef.current;
+    if (el) el.dataset.suppressed = v ? '1' : '';
+  }, []);
+
+  const onStageEnter = useCallback(
+    (e: React.MouseEvent) => {
+      // seed both positions so the cursor appears under the pointer, not flying in
+      ptr.current = { x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY };
+      suppress(isInteractive(e.target));
+      setCursorOn(true);
+    },
+    [suppress],
+  );
+
+  const onStageMove = useCallback(
+    (e: React.MouseEvent) => {
+      ptr.current.x = e.clientX;
+      ptr.current.y = e.clientY;
+      suppress(isInteractive(e.target));
+    },
+    [suppress],
+  );
+
+  const onStageClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isInteractive(e.target)) return;
+      setModalStory(frontStory);
+    },
+    [frontStory],
+  );
+
+  // the modal takes over the pointer entirely, so derive rather than store
+  const showCursor = cursorOn && !modalStory;
+
+  // eased trail — lerps toward the pointer each frame rather than snapping
+  useEffect(() => {
+    if (!showCursor) return;
+    let raf = 0;
+    const loop = () => {
+      const p = ptr.current;
+      p.cx += (p.x - p.cx) * 0.18;
+      p.cy += (p.y - p.cy) * 0.18;
+      const el = cursorRef.current;
+      if (el) el.style.transform = `translate3d(${p.cx}px, ${p.cy}px, 0) translate(-50%, -50%)`;
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [showCursor]);
+
+  /**
+   * One layer per story id, deduplicated. front claims its id first, so even if
+   * state briefly overlaps (rapid switching) React can never receive two
+   * children with the same key.
+   */
+  const layers = useMemo(() => {
+    const seen = new Set<string>();
+    const claim = (story: Story | null, state: LayerState) => {
+      if (!story || seen.has(story.id)) return null;
+      seen.add(story.id);
+      return { story, state };
+    };
+    const front = claim(frontStory, 'front');
+    const leaving = claim(leavingStory, 'leaving');
+    const next = claim(nextStory, 'next');
+    // DOM order: outgoing underneath, incoming on top
+    return [leaving, front, next].filter(Boolean) as { story: Story; state: LayerState }[];
+  }, [frontStory, leavingStory, nextStory]);
+
+  return (
+    <section className="tst" ref={sectionRef} data-dark="0" data-navbar-theme="dark" data-revealed={revealed ? '1' : undefined}>
       {/* the card lives outside .tst-stage so it can overlap the video on desktop
           and simply flow beneath it once the layout stacks */}
       <div className="tst-frame" data-switching={switching ? '1' : undefined}>
-        <div className="tst-stage">
-          {STORIES.map((s, i) => (
-            <BackgroundVideo
-              key={s.id}
-              story={s}
-              active={i === activeIndex}
+        <div
+          className="tst-stage"
+          onMouseEnter={onStageEnter}
+          onMouseMove={onStageMove}
+          onMouseLeave={() => setCursorOn(false)}
+          onClick={onStageClick}
+        >
+          {layers.map((l) => (
+            <StoryLayer
+              key={l.story.id}
+              story={l.story}
+              state={l.state}
               paused={paused}
-              eager={i === 0}
+              eager
+              onReady={onLayerReady}
             />
           ))}
 
@@ -294,11 +525,16 @@ export default function TestimonialSection() {
             <span className="tst-grad" />
           </div>
 
-          <StoryOverlay story={active} onPlay={() => setModalStory(active)} />
+          <StoryOverlay story={active} />
           <ThumbnailList activeIndex={activeIndex} onSelect={select} ringRef={ringRef} />
         </div>
 
         <QuoteCard story={active} />
+      </div>
+
+      {/* floating play cursor — pointer-events:none so it never blocks the click */}
+      <div className="tst-cursor" ref={cursorRef} data-on={showCursor ? '1' : undefined} aria-hidden>
+        <Image src="/assets/testimonials/play-button.svg" alt="" width={72} height={72} />
       </div>
 
       <VideoModal story={modalStory} onClose={() => setModalStory(null)} />

@@ -94,8 +94,12 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 2px 0 #1C2C5A, 0 8px 14px rgba(0, 0, 0, .30);
 }
 
-/* ---- Site header: full-width bar -> floating adaptive-glass pill ---- */
+/* ---- Site header: a stable glass bar that never morphs on scroll ----
+   Only background tint, blur strength, border, colours and shadow animate;
+   width, height, radius and position are fixed at every scroll offset. */
 #siteHeader {
+  --hdr-ease: cubic-bezier(0.22, 0.75, 0.28, 1);
+  --hdr-dur: 0.3s;
   position: fixed;
   top: 0;
   left: 0;
@@ -105,70 +109,137 @@ body {
   justify-content: center;
   pointer-events: none;
 }
-#hdrInner {
+#hdrBar {
+  position: relative;
   box-sizing: border-box;
   pointer-events: auto;
+  width: calc(100% - clamp(24px, 8vw, 160px));
+  margin-top: 12px;
+  border: 1px solid transparent;
+  border-radius: 18px;                 /* subtle, never a capsule */
+  overflow: hidden;                    /* clips the blur bands to the rounded box */
+  transition:
+    border-color var(--hdr-dur) var(--hdr-ease),
+    box-shadow var(--hdr-dur) var(--hdr-ease);
+}
+
+/* --- background layer: kept separate so the nav content stays sharp --- */
+#hdrBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.hdr-blur,
+.hdr-tint {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+/* Progressive blur: three bands, each blurrier and masked shorter than the last,
+   so the softening is strongest behind the content and dissolves before the
+   bottom edge instead of ending as a flat frosted rectangle. */
+.hdr-blur {
+  transition:
+    -webkit-backdrop-filter var(--hdr-dur) var(--hdr-ease),
+    backdrop-filter var(--hdr-dur) var(--hdr-ease);
+}
+.hdr-blur-1 {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 64%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 64%, transparent 100%);
+}
+.hdr-blur-2 {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 76%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 76%);
+}
+.hdr-blur-3 {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 48%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 48%);
+}
+.hdr-tint {
+  transition: background var(--hdr-dur) var(--hdr-ease);
+}
+
+#hdrInner {
+  position: relative;
+  z-index: 1;                          /* content sits above the blur */
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 36px;
-  width: 100%;
-  max-width: 100%;
-  margin-top: 0;
-  padding: 22px 40px;
-  border: 1px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  transition:
-    max-width 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-    margin-top 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-    padding 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-    border-radius 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-    background-color 0.5s ease 0.05s,
-    border-color 0.5s ease 0.05s,
-    box-shadow 0.5s ease 0.05s;
+  padding: 22px clamp(20px, 3.3vw, 48px);
 }
-#siteHeader.scrolled #hdrInner {
-  max-width: 86%; /* aligns with the hero content inset (7% gutters each side) */
-  margin-top: 12px;
-  padding: 11px 28px;
-  border-radius: 18px;
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  backdrop-filter: blur(14px) saturate(140%);
+
+/* --- over dark or busy backgrounds --- */
+#siteHeader[data-navbar-theme='dark'] .hdr-blur-1 {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
-#siteHeader.scrolled.tone-light #hdrInner {
-  background: rgba(255, 255, 255, 0.62);
-  border-color: rgba(0, 0, 0, 0.07);
-  box-shadow: 0 10px 30px rgba(10, 16, 40, 0.1);
+#siteHeader[data-navbar-theme='dark'] .hdr-blur-2 {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
-#siteHeader.scrolled.tone-dark #hdrInner {
-  background: rgba(18, 22, 46, 0.42);
+#siteHeader[data-navbar-theme='dark'] .hdr-blur-3 {
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+#siteHeader[data-navbar-theme='dark'] .hdr-tint {
+  /* the Figma's scrim: black 38% fading out downward */
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, rgba(0, 0, 0, 0) 100%);
+}
+#siteHeader[data-navbar-theme='dark'] #hdrBar {
   border-color: rgba(255, 255, 255, 0.14);
   box-shadow: 0 12px 32px rgba(10, 16, 40, 0.28);
 }
+#siteHeader[data-navbar-theme='dark'] #hdrNav,
+#siteHeader[data-navbar-theme='dark'] #hdrLogin { color: #fff; }
+#siteHeader[data-navbar-theme='dark'] #hdrLogoLight { opacity: 1; }
+#siteHeader[data-navbar-theme='dark'] #hdrLogoColor { opacity: 0; }
+
+/* --- over light backgrounds: softer veil, less blur, navy type --- */
+#siteHeader[data-navbar-theme='light'] .hdr-blur-1 {
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+#siteHeader[data-navbar-theme='light'] .hdr-blur-2 {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+#siteHeader[data-navbar-theme='light'] .hdr-blur-3 {
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+}
+#siteHeader[data-navbar-theme='light'] .hdr-tint {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 100%);
+}
+#siteHeader[data-navbar-theme='light'] #hdrBar {
+  border-color: rgba(0, 0, 0, 0.07);
+  box-shadow: 0 10px 30px rgba(10, 16, 40, 0.08);
+}
+#siteHeader[data-navbar-theme='light'] #hdrNav,
+#siteHeader[data-navbar-theme='light'] #hdrLogin { color: #0a0c11; }
+#siteHeader[data-navbar-theme='light'] #hdrLogoLight { opacity: 0; }
+#siteHeader[data-navbar-theme='light'] #hdrLogoColor { opacity: 1; }
 
 #hdrLogoBox {
   position: relative;
   height: 34px;
   width: 150px;
   flex: none;
-  transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
 }
-#hdrLogoFull,
-#hdrLogoBird {
+#hdrLogoLight,
+#hdrLogoColor {
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
+  height: 34px;
   width: auto;
   max-width: none;
   display: block;
-  transition: opacity 0.45s ease;
+  transition: opacity var(--hdr-dur) var(--hdr-ease);
 }
-#hdrLogoFull { height: 34px; opacity: 1; }
-#hdrLogoBird { height: 30px; opacity: 0; }
-#siteHeader.scrolled #hdrLogoFull { opacity: 0; }
-#siteHeader.scrolled #hdrLogoBird { opacity: 1; }
 
 #hdrNav {
   display: flex;
@@ -178,7 +249,7 @@ body {
   font-size: 16px;
   font-weight: 500;
   white-space: nowrap;
-  transition: color 0.5s ease;
+  transition: color var(--hdr-dur) var(--hdr-ease);
 }
 #hdrNav a { color: inherit; text-decoration: none; }
 #hdrLogin {
@@ -187,13 +258,12 @@ body {
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
-  transition: color 0.5s ease;
+  transition: color var(--hdr-dur) var(--hdr-ease);
 }
-#hdrCta { display: flex; align-items: center; gap: 14px; flex: none; }
-#siteHeader.tone-dark #hdrNav,
-#siteHeader.tone-dark #hdrLogin { color: #fff; }
-#siteHeader.tone-light #hdrNav { color: #161B33; }
-#siteHeader.tone-light #hdrLogin { color: #2D4797; }
+@media (max-width: 860px) {
+  #hdrInner { gap: 18px; padding: 16px clamp(14px, 3vw, 24px); }
+  #hdrNav { gap: 18px; font-size: 15px; }
+}
 
 /* Stats cards — progressive blur frosted into the top-right corner */
 .scard-blur {
@@ -1237,55 +1307,40 @@ body {
    1440 frame: stage 1328x748 inset 56px, radius 24. Everything inside the stage is
    positioned against it, so the whole block scales with the container. */
 .tst {
-  --stage-pad: 56px;
+  /* One full-screen canvas: every part of the composition has to be visible at
+     once, so the scene is driven by viewport height and each inner metric is a
+     clamp that responds to BOTH axes (vh terms shrink things on short laptops
+     that width-only breakpoints would miss). */
+  --tst-nav: clamp(88px, 9vh, 104px);       /* clears the fixed navbar (~83px tall) */
+  --stage-pad: clamp(20px, 5.8vw, 84px);    /* left/right safe inset (84 @1440) */
+  --tst-inset-y: clamp(16px, 4vh, 40px);    /* top/bottom safe inset */
+  --thumb-w: clamp(58px, 10.5vh, 85.25px);
+  --thumb-h: calc(var(--thumb-w) * 48 / 85.25);
+  --thumb-w-on: clamp(78px, 14.3vh, 116px);
+  --thumb-h-on: calc(var(--thumb-w-on) * 69.048 / 116);
   --ease: cubic-bezier(0.22, 0.75, 0.28, 1);
-  background: #fff;
-  padding: 89px 0 46px;
-  overflow-x: clip;
+  background: #0a0c11;
+  padding: 0;
+  height: 100svh;
+  min-height: 620px;
+  max-height: 100dvh;
+  overflow: hidden;                          /* no scrolling within the scene */
 }
-.tst-head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 30px;
-  text-align: center;
-  letter-spacing: -0.46px;
-  margin: 0 auto 39px;
-  padding: 0 24px;
-}
-.tst-title {
-  margin: 0;
-  max-width: 916px;
-  font-family: 'Anek Bangla', sans-serif;
-  font-weight: 700;
-  font-size: clamp(32px, 3.9vw, 56px);
-  line-height: 1.143;
-  color: #161b33;
-}
-.tst-sub {
-  margin: 0;
-  max-width: 612px;
-  font-family: 'Anek Bangla', sans-serif;
-  font-weight: 400;
-  font-size: clamp(17px, 1.7vw, 24px);
-  line-height: 1.333;
-  color: #5b616d;
-}
-
 /* ---- stage ---- */
 .tst-frame {
   position: relative;
-  /* fluid rather than pinned to the Figma's 1328px, so the stage keeps growing on
-     large monitors instead of stranding wide side gutters. 94vw leaves ~6vw of
-     total breathing room; the cap stops it going full-bleed. */
-  width: min(94vw, 1800px);
-  margin: 0 auto;
+  /* full-bleed: the video is the section now */
+  width: 100%;
+  height: 100%;
+  margin: 0;
 }
 .tst-stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 1328 / 748;
-  border-radius: 24px;
+  /* height-driven, not ratio-driven — object-fit:cover absorbs any shape */
+  height: 100%;
+  border-radius: 0;
+  cursor: none;                        /* replaced by the floating play cursor */
   overflow: hidden;
   background: #0a0c11;
   isolation: isolate;
@@ -1295,20 +1350,58 @@ body {
 .tst-bg-layer {
   position: absolute;
   inset: 0;
+  z-index: 0;                          /* always behind every overlay */
   opacity: 0;
-  transition: opacity 0.3s var(--ease);
+  visibility: hidden;
+  transition: opacity 0.45s var(--ease);
   will-change: opacity;
 }
-.tst-bg-layer[data-active='1'] { opacity: 1; }
+/* on screen; fades UP over the outgoing layer so the crossfade never dips to black */
+.tst-bg-layer[data-state='front'] { opacity: 1; visibility: visible; z-index: 1; }
+/* outgoing: stays fully opaque underneath until it's unmounted */
+.tst-bg-layer[data-state='leaving'] { opacity: 1; visibility: visible; z-index: 0; }
+/* preparing: never rendered, never composited, never hit-tested */
+.tst-bg-layer[data-state='next'] { opacity: 0; visibility: hidden; z-index: 0; }
+/* the incoming layer must animate in from nothing rather than snap */
+.tst-bg-layer[data-state='front'] { animation: tstLayerIn 0.45s var(--ease) both; }
+@keyframes tstLayerIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* background players never take the pointer */
+.tst-bg-media { pointer-events: none !important; }
+
+/* Kill every native media affordance. WebKit paints these as shadow-DOM parts,
+   so `controls` being absent isn't always enough during load/seek. */
+.tst-bg-media::-webkit-media-controls,
+.tst-bg-media::-webkit-media-controls-enclosure,
+.tst-bg-media::-webkit-media-controls-panel,
+.tst-bg-media::-webkit-media-controls-overlay-play-button,
+.tst-bg-media::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 .tst-bg-poster {
   position: absolute;
   inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 1;
+  transition: opacity 0.45s var(--ease);
 }
+.tst-bg-poster[data-hide='1'] { opacity: 0; }
+/* a preparing layer keeps its poster hard-opaque no matter what */
+.tst-bg-layer[data-state='next'] .tst-bg-poster { opacity: 1; transition: none; }
 .tst-bg-media {
   position: absolute;
+  z-index: 0;
   top: 50%;
   left: 50%;
   width: 100%;
@@ -1325,7 +1418,7 @@ body {
 .tst-scrim {
   position: absolute;
   inset: 0 auto 0 0;
-  width: 54.7%;
+  width: 54.6%;
   pointer-events: none;
   z-index: 1;
 }
@@ -1358,76 +1451,92 @@ body {
 .tst-stage:hover .tst-grad { opacity: 1.12; }
 
 /* ---- story title + play CTA ---- */
-.tst-overlay-content,
-.tst-quote { transition: opacity 0.25s var(--ease); }
-.tst-frame[data-switching='1'] .tst-overlay-content,
-.tst-frame[data-switching='1'] .tst-quote { opacity: 0; }
+/* no container-level dip: the per-word reveal carries the transition, and a
+   simultaneous fade would swallow its first frames */
 .tst-overlay-content {
   position: absolute;
   left: var(--stage-pad);
-  top: 8.3%;
-  width: 40.6%;                        /* 539 / 1328 */
+  top: calc(var(--tst-nav) + var(--tst-inset-y));
+  width: clamp(260px, 37.6%, 542px);   /* 542 / 1440 */
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(10px, 2.4vh, 24px);
+  pointer-events: none;                /* clicks fall through to the stage */
+}
+/* ---- per-word blur reveal (same treatment as the hero and teachers) ---- */
+.tst-w {
+  display: inline-block;
+  white-space: pre;
+  will-change: opacity, filter, transform;
+}
+/* hidden until the scene scrolls into view */
+.tst:not([data-revealed]) .tst-w { opacity: 0; }
+/* mounting a new title/quote replays this, so every story switch re-reveals */
+.tst[data-revealed] .tst-w {
+  animation: tstWordIn 0.62s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+@keyframes tstWordIn {
+  from { opacity: 0; filter: blur(10px); transform: translateY(16px); }
+  to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+.tst-eyebrow {
+  margin: 0;
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: clamp(15px, min(1.7vw, 3vh), 24px);
+  line-height: 1.333;
+  color: #fff;
+}
+.tst-divider {
+  width: clamp(120px, 17vw, 244.5px);
+  max-width: 100%;
+  height: 1px;
+  flex: none;
+  background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0) 100%);
 }
 .tst-story-title {
   margin: 0;
   font-family: 'Anek Bangla', sans-serif;
   font-weight: 700;
-  font-size: clamp(26px, 3.9vw, 56px);
+  font-size: clamp(24px, min(3.9vw, 6.9vh), 56px);
   line-height: 1.143;
   letter-spacing: -0.46px;
   color: #fff;
 }
-.tst-play-row {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  margin-top: 6.5%;
+/* floating play cursor — follows the pointer with an eased trail */
+.tst-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  width: 72px;
+  height: 72px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s var(--ease), scale 0.18s var(--ease);
+  scale: 0.85;
+  will-change: transform;
 }
-.tst-play {
-  width: 64px;
-  height: 64px;
-  flex: none;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  transition: transform 0.22s var(--ease);
-}
-.tst-play img { width: 100%; height: 100%; display: block; }
-.tst-stage:hover .tst-play,
-.tst-play:hover { transform: scale(1.08); }
-.tst-play:focus-visible { outline: 3px solid #5468ff; outline-offset: 4px; }
-.tst-play-label {
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  font-family: 'Anek Bangla', sans-serif;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 24px;
-  color: #fff;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-decoration-color: rgba(255, 255, 255, 0.72);
-  transition: text-decoration-color 0.22s var(--ease);
-}
-.tst-play-label:hover { text-decoration-color: #fff; }
+.tst-cursor img { width: 100%; height: 100%; display: block; }
+.tst-cursor[data-on='1'] { opacity: 1; scale: 1; }
+.tst-cursor[data-suppressed='1'] { opacity: 0; scale: 0.85; }
 
 /* ---- glass quote card ---- */
 .tst-quote {
   position: absolute;
-  right: 1.8%;
-  bottom: 3.2%;
-  width: 53%;                          /* 704 / 1328 */
+  right: var(--stage-pad);
+  bottom: var(--tst-inset-y);
+  width: clamp(300px, 48.9%, 704px);   /* 704 / 1440 */
   z-index: 3;
   margin: 0;
-  padding: 45px 40px 32px;
+  padding: clamp(24px, 5.5vh, 45px) clamp(20px, 2.8vw, 40px) clamp(18px, 4vh, 32px);
   display: flex;
   flex-direction: column;
-  gap: 23px;
+  gap: clamp(12px, 2.8vh, 23px);
   border: 2px solid rgba(0, 0, 0, 0.04);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
@@ -1436,16 +1545,16 @@ body {
 }
 .tst-quote-icon {
   position: absolute;
-  left: 33px;
-  top: -31px;
-  width: 66px;
-  height: 66px;
+  left: clamp(20px, 2.3vw, 33px);
+  top: clamp(-31px, -3.8vh, -20px);
+  width: clamp(42px, 8.1vh, 66px);
+  height: clamp(42px, 8.1vh, 66px);
 }
 .tst-quote-text {
   margin: 0;
   font-family: 'Anek Bangla', sans-serif;
   font-weight: 700;
-  font-size: clamp(20px, 2.4vw, 32px);
+  font-size: clamp(18px, min(2.4vw, 4vh), 32px);
   line-height: 1.25;
   letter-spacing: -0.46px;
   color: #0a0c11;
@@ -1453,22 +1562,22 @@ body {
 .tst-quote-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 20px;
+  gap: clamp(6px, 1.5vh, 12px);
+  padding-top: clamp(12px, 2.5vh, 20px);
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   letter-spacing: -0.46px;
 }
 .tst-quote-author {
   font-family: 'Anek Bangla', sans-serif;
   font-weight: 700;
-  font-size: clamp(20px, 2.1vw, 28px);
+  font-size: clamp(18px, min(2.1vw, 3.5vh), 28px);
   line-height: 1.143;
   color: #0a0c11;
 }
 .tst-quote-detail {
   font-family: 'Anek Bangla', sans-serif;
   font-weight: 500;
-  font-size: clamp(14px, 1.3vw, 18px);
+  font-size: clamp(12px, min(1.3vw, 2.2vh), 18px);
   line-height: 1.333;
   color: #5b616d;
 }
@@ -1477,17 +1586,19 @@ body {
 .tst-thumbs {
   position: absolute;
   left: var(--stage-pad);
-  bottom: 7.8%;
-  z-index: 3;
+  /* sits a touch above the card's baseline, as in the Figma; collapses on short screens */
+  bottom: calc(var(--tst-inset-y) + clamp(0px, 2.7vh, 22px));
+  z-index: 4;
   display: flex;
   align-items: flex-end;
   gap: 8px;
 }
 .tst-thumb {
   position: relative;
+  cursor: pointer;                     /* overrides the stage's cursor:none */
   flex: none;
-  width: 85.25px;
-  height: 48px;
+  width: var(--thumb-w);
+  height: var(--thumb-h);
   padding: 0;
   border: 0;
   border-radius: 5px;
@@ -1502,8 +1613,8 @@ body {
 .tst-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tst-thumb:hover { transform: scale(1); }
 .tst-thumb[data-active='1'] {
-  width: 116px;
-  height: 69px;
+  width: var(--thumb-w-on);
+  height: var(--thumb-h-on);
   opacity: 1;
   transform: scale(1);
   border-radius: 9.2px;
@@ -1595,28 +1706,46 @@ body {
 
 /* ---- responsive ---- */
 @media (max-width: 1100px) {
-  .tst { --stage-pad: 32px; }
-  .tst-overlay-content { width: 52%; top: 7%; }
-  .tst-quote { width: 62%; padding: 38px 28px 26px; gap: 18px; }
-  .tst-play { width: 52px; height: 52px; }
+  /* keep top nav-aware; only widen the columns */
+  .tst-overlay-content { width: clamp(260px, 52%, 542px); }
+  .tst-quote { width: clamp(300px, 62%, 704px); }
+  .tst-cursor { width: 60px; height: 60px; }
+}
+
+/* ---- short viewports: tighten before anything can overlap ---- */
+@media (max-height: 760px) {
+  .tst { --tst-nav: 88px; --tst-inset-y: clamp(12px, 3vh, 24px); }
+}
+@media (max-height: 640px) {
+  .tst { min-height: 560px; --tst-nav: 84px; }
+  .tst-divider { display: none; }      /* buys a whole gap + rule of height */
+  .tst-quote-icon { display: none; }
 }
 @media (max-width: 780px) {
-  .tst { --stage-pad: 20px; padding: 56px 0 40px; }
-  .tst-head { gap: 16px; margin-bottom: 28px; }
-  .tst-frame { width: min(1328px, 100% - 40px); }
-  /* stage stays a 16:9 video; the card drops below it in normal flow */
-  .tst-stage { aspect-ratio: 16 / 9; border-radius: 18px; }
+  /* phones can't fit the whole composition in one screen — the card returns to
+     normal flow and the section grows, so nothing is clipped by overflow:hidden */
+  .tst {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    --tst-nav: clamp(64px, 8vh, 84px);
+  }
+  .tst-frame { width: 100%; height: auto; }
+  .tst-stage { height: auto; aspect-ratio: 16 / 9; cursor: pointer; }
   .tst-blur-1, .tst-blur-2, .tst-blur-3 { display: none; }
   .tst-scrim { width: 100%; }
   .tst-grad {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.2) 55%, rgba(0, 0, 0, 0.72) 100%);
   }
-  .tst-overlay-content { top: 6%; width: calc(100% - var(--stage-pad) * 2); }
-  /* more overscan so the embed's own chrome stays outside the small stage */
-  .tst-bg-layer iframe.tst-bg-media { transform: translate(-50%, -50%) scale(1.75); }
-  .tst-play-row { margin-top: 14px; }
-  .tst-play { width: 44px; height: 44px; }
-  .tst-play-label { font-size: 16px; }
+  .tst-overlay-content {
+    top: calc(var(--tst-nav) + 12px);
+    width: calc(100% - var(--stage-pad) * 2);
+    gap: 10px;
+  }
+  .tst-divider { display: block; width: 140px; }
+  /* touch devices have no hover pointer to follow */
+  .tst-cursor { display: none; }
   .tst-thumbs { bottom: 12px; gap: 6px; }
   .tst-thumb { width: 58px; height: 33px; }
   .tst-thumb[data-active='1'] { width: 78px; height: 46px; padding: 3px; border-radius: 7px; }
@@ -1624,17 +1753,19 @@ body {
   .tst-quote {
     position: static;
     width: auto;
-    margin: 34px 0 0;
+    margin: 34px var(--stage-pad) 40px;
     padding: 34px 22px 22px;
     gap: 16px;
   }
-  .tst-quote-icon { width: 48px; height: 48px; left: 22px; top: -22px; }
+  .tst-quote-icon { display: block; width: 48px; height: 48px; left: 22px; top: -22px; }
   .tvm { padding: 16px; }
   .tvm-close { top: -44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tst-bg-layer, .tst-fade, .tst-thumb, .tst-play, .tvm-panel, .tvm-scrim {
+  .tst-bg-layer, .tst-thumb, .tst-cursor, .tvm-panel, .tvm-scrim {
     transition-duration: 0.01ms;
   }
+  .tst .tst-w,
+  .tst[data-revealed] .tst-w { animation: none; opacity: 1; filter: none; transform: none; }
 }

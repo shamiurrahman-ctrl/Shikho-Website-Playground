@@ -13,22 +13,30 @@ import TestimonialSection from './TestimonialSection';
  */
 
 const HEADER_MARKUP = `
-<!-- ============ HEADER (shrinks into a floating glass pill on scroll) ============ -->
-  <header id="siteHeader" class="tone-dark">
-    <div id="hdrInner">
-      <div id="hdrLogoBox">
-        <img id="hdrLogoFull" src="/assets/shikho-logo-white.svg" alt="Shikho">
-        <img id="hdrLogoBird" src="/assets/shikho-bird.svg" alt="Shikho">
+<!-- ============ HEADER (stable glass bar; theme follows the section beneath) ============ -->
+  <header id="siteHeader" data-navbar-theme="dark">
+    <div id="hdrBar">
+      <div id="hdrBg" aria-hidden="true">
+        <span class="hdr-blur hdr-blur-1"></span>
+        <span class="hdr-blur hdr-blur-2"></span>
+        <span class="hdr-blur hdr-blur-3"></span>
+        <span class="hdr-tint"></span>
       </div>
-      <nav id="hdrNav">
-        <a href="#">কোর্স</a>
-        <a href="#">ফিচার</a>
-        <a href="#">মেন্টর</a>
-        <a href="#">ব্লগ</a>
-      </nav>
-      <div id="hdrCta">
-        <a id="hdrLogin" href="#">লগ ইন</a>
-        <a href="#" class="btn-3d btn-pink" style="font-family:'Hind Siliguri',sans-serif;font-size:15px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap;padding:12px 24px;border-radius:14px;">ফ্রি-তে শুরু করো</a>
+      <div id="hdrInner">
+        <div id="hdrLogoBox">
+          <img id="hdrLogoLight" src="/assets/shikho-logo-white.svg" alt="Shikho">
+          <img id="hdrLogoColor" src="/assets/shikho-logo.svg" alt="" aria-hidden="true">
+        </div>
+        <nav id="hdrNav">
+          <a href="#">কোর্স</a>
+          <a href="#">ফিচার</a>
+          <a href="#">মেন্টর</a>
+          <a href="#">ব্লগ</a>
+        </nav>
+        <div id="hdrCta">
+          <a id="hdrLogin" href="#">লগ ইন</a>
+          <a href="#" class="btn-3d btn-pink" style="font-family:'Hind Siliguri',sans-serif;font-size:15px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap;padding:12px 24px;border-radius:14px;">ফ্রি-তে শুরু করো</a>
+        </div>
       </div>
     </div>
   </header>
@@ -36,7 +44,7 @@ const HEADER_MARKUP = `
 
 const STATS_MARKUP = `
 <!-- ============ WINDOW HERO → STATS (one continuous pinned section) ============ -->
-  <section id="statsTrack" data-dark="1" style="position:relative;height:300vh;background:#050b26;z-index:1;">
+  <section id="statsTrack" data-dark="1" data-navbar-theme="dark" style="position:relative;height:300vh;background:#050b26;z-index:1;">
     <div id="statsStage" style="position:sticky;top:0;height:100vh;overflow:hidden;">
       <!-- deep sky + sunrise glow -->
       <div style="position:absolute;inset:0;background:radial-gradient(120% 78% at 50% 122%,#ff8a3a 0%,#ff7c2e 7%,rgba(255,150,80,0) 46%),linear-gradient(180deg,#050b26 0%,#0a1a4e 32%,#155fce 70%,#4bb2ff 100%);"></div>
@@ -103,7 +111,7 @@ const STATS_MARKUP = `
 
 const FEATURE_MARKUP = `
 <!-- ============ CORE FEATURES (content over the dotted-white cloud background) ============ -->
-  <section id="featTrack" data-dark="0" style="position:relative;height:400vh;margin-top:-100vh;z-index:2;">
+  <section id="featTrack" data-dark="0" data-navbar-theme="light" style="position:relative;height:400vh;margin-top:-100vh;z-index:2;">
     <div id="featStage" style="position:sticky;top:0;height:100vh;overflow:hidden;">
 
       <!-- three parallax cloud layers that fly up over the stats. base = top cloud + full white dotted section; mid + bottom = extra cloud volume that sweeps up faster. positions driven by the scroll loop. -->
@@ -146,7 +154,7 @@ const FEATURE_MARKUP = `
 
 const FOOTER_MARKUP = `
   <!-- ============ FOOTER (stub) ============ -->
-  <footer data-dark="1" style="background:#0E1430;padding:64px 40px 40px;">
+  <footer data-dark="1" data-navbar-theme="dark" style="background:#0E1430;padding:64px 40px 40px;">
     <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:30px;">
       <div style="max-width:320px;">
         <img src="/assets/shikho-logo-white.svg" alt="Shikho" style="height:32px;margin-bottom:16px;">
@@ -196,14 +204,44 @@ export default function ShikhoHome() {
 
     root.style.setProperty('--accent', '#FAA700');
 
-    // ---- header (shared across both hero instances) ----
+    // ---- navbar theme: observe which tagged section sits under the bar ----
     const siteHeader = q('#siteHeader');
-    const hdrLogoBox = q('#hdrLogoBox');
-    const hdrLogoFull = q<HTMLImageElement>('#hdrLogoFull');
-    const hdrLogoBird = q<HTMLImageElement>('#hdrLogoBird');
-    const heroTracks = qa('#track'); // one per <HeroSection/>
-    const hdrZones = qa('[data-dark]').map((z) => ({ el: z, d: +(z.getAttribute('data-dark') || 0) }));
-    let hdrDark = 1;
+
+    let navIO: IntersectionObserver | null = null;
+    const overlapping = new Set<Element>();
+    let navTheme = '';
+
+    const buildNavObserver = () => {
+      navIO?.disconnect();
+      overlapping.clear();
+      const themed = qa('[data-navbar-theme]').filter((el) => el !== siteHeader);
+      if (!themed.length || !siteHeader) return;
+
+      // a 1px-tall band at the navbar's vertical midpoint: whatever section
+      // crosses that line is literally the thing behind the bar
+      const y = 44;
+      navIO = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) overlapping.add(e.target);
+            else overlapping.delete(e.target);
+          }
+          // later sections paint over earlier pinned ones, so last match wins
+          let pick: Element | null = null;
+          for (const el of themed) if (overlapping.has(el)) pick = el;
+          const next = pick?.getAttribute('data-navbar-theme') || 'light';
+          if (next === navTheme) return;
+          navTheme = next;
+          siteHeader.setAttribute('data-navbar-theme', next);
+        },
+        { rootMargin: `-${y}px 0px -${Math.max(0, window.innerHeight - y - 1)}px 0px`, threshold: 0 },
+      );
+      themed.forEach((el) => navIO!.observe(el));
+    };
+
+    buildNavObserver();
+    const onNavResize = () => buildNavObserver();
+    window.addEventListener('resize', onNavResize, { passive: true });
 
     // ---- window-hero → stats cascade (one pinned section) ----
     const statsTrack = q('#statsTrack');
@@ -258,44 +296,6 @@ export default function ShikhoHome() {
 
     const render = () => {
       const vh = window.innerHeight;
-
-      if (siteHeader) {
-        const scrolled = window.scrollY > 56;
-        siteHeader.classList.toggle('scrolled', scrolled);
-
-        const sampleY = 46;
-        let targetDark = 0;
-        let overHero = false;
-        for (const t of heroTracks) {
-          const r = t.getBoundingClientRect();
-          if (r.top <= sampleY && r.bottom > sampleY) {
-            const travel = t.offsetHeight - vh;
-            const P = clamp(-r.top / travel, 0, 1) * 8;
-            targetDark = 1 - mc(P, 1.4, 2.05); // dark hero -> light gradient
-            overHero = true;
-            break;
-          }
-        }
-        if (!overHero) {
-          for (const z of hdrZones) {
-            const r = z.el.getBoundingClientRect();
-            if (r.top <= sampleY && r.bottom > sampleY) {
-              targetDark = z.d;
-              break;
-            }
-          }
-        }
-        hdrDark += (targetDark - hdrDark) * 0.15;
-        const dark = hdrDark > 0.5;
-        siteHeader.classList.toggle('tone-dark', dark);
-        siteHeader.classList.toggle('tone-light', !dark);
-
-        if (hdrLogoBox) {
-          const fullW = hdrLogoFull?.offsetWidth || 150;
-          const birdW = hdrLogoBird?.offsetWidth || 34;
-          if (fullW > 1) hdrLogoBox.style.width = (scrolled ? birdW : fullW) + 'px';
-        }
-      }
 
       if (statsTrack && statsGroup) {
         const vw = window.innerWidth;
@@ -461,7 +461,11 @@ export default function ShikhoHome() {
       render();
       raf = requestAnimationFrame(loop);
     });
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onNavResize);
+      navIO?.disconnect();
+    };
   }, []);
 
   return (

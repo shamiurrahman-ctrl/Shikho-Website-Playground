@@ -13,6 +13,10 @@ import { useEffect, useRef } from 'react';
 const HERO_MARKUP = `
 <!-- ============ PINNED SCROLL TRACK ============ -->
   <section id="track" style="position:relative;height:900vh;">
+    <!-- navbar theme markers: the hero starts on the dark sunset sky and resolves
+         to a light gradient ~19% in, so the bar reads two zones, not one -->
+    <span data-navbar-theme="dark" aria-hidden="true" style="position:absolute;top:0;left:0;width:1px;height:19%;opacity:0;pointer-events:none;"></span>
+    <span data-navbar-theme="light" aria-hidden="true" style="position:absolute;top:19%;left:0;width:1px;bottom:0;opacity:0;pointer-events:none;"></span>
     <div id="stage" style="position:sticky;top:0;height:100vh;overflow:hidden;background:linear-gradient(180deg,#CADFF4 0%,#DCE9F7 32%,#EFE9F0 58%,#FBEEDB 80%,#FEF6EC 100%);">
 
       <!-- dark sunset sky (hero) — fades out as the feature tour begins -->
@@ -575,10 +579,6 @@ export default function HeroSection({ variant = 'default' }: { variant?: 'defaul
 
     const el = {
       heroBg: q<HTMLImageElement>('#heroBg'),
-      siteHeader: q('#siteHeader'),
-      hdrLogoBox: q('#hdrLogoBox'),
-      hdrLogoFull: q<HTMLImageElement>('#hdrLogoFull'),
-      hdrLogoBird: q<HTMLImageElement>('#hdrLogoBird'),
       cloudsB: q('#cloudsBack'),
       cloudsF: q('#cloudsFront'),
       glow: q('#glow'),
@@ -650,13 +650,6 @@ export default function HeroSection({ variant = 'default' }: { variant?: 'defaul
     const s2qWidth = (el.s2q?.scrollWidth as number) || 220;
     let confettiDone = false;
     let phoneScale = 1;
-
-    // header backdrop tone: sections tagged data-dark (1=dark bg, 0=light bg)
-    const hdrZones = qa('[data-dark]').map((z) => ({
-      el: z,
-      d: +(z.getAttribute('data-dark') || 0),
-    }));
-    let hdrDark = 1; // smoothed darkness behind the header (starts over the dark hero)
 
     // gap the lower group lifts by once the big title collapses to the single title
     let heroGap = 150;
@@ -820,39 +813,6 @@ export default function HeroSection({ variant = 'default' }: { variant?: 'defaul
         const bgo = 1 - mc(P, 1.4, 2.05);
         el.heroBg.style.opacity = String(bgo);
         el.heroBg.style.visibility = bgo < 0.01 ? 'hidden' : 'visible';
-      }
-
-      // header: toggle CSS state classes (CSS handles the fluid transitions)
-      if (el.siteHeader) {
-        const scrolled = window.scrollY > 56;
-        el.siteHeader.classList.toggle('scrolled', scrolled);
-
-        // detect background tone behind the header (1 = dark, 0 = light), smoothed
-        const sampleY = 46;
-        let targetDark = 0;
-        const rTrack = track.getBoundingClientRect();
-        if (rTrack.top <= sampleY && rTrack.bottom > sampleY) {
-          targetDark = 1 - mc(P, 1.4, 2.05); // dark hero -> light gradient
-        } else {
-          for (const z of hdrZones) {
-            const r = z.el.getBoundingClientRect();
-            if (r.top <= sampleY && r.bottom > sampleY) {
-              targetDark = z.d;
-              break;
-            }
-          }
-        }
-        hdrDark += (targetDark - hdrDark) * 0.15;
-        const dark = hdrDark > 0.5;
-        el.siteHeader.classList.toggle('tone-dark', dark);
-        el.siteHeader.classList.toggle('tone-light', !dark);
-
-        // collapse the logo box width (CSS transitions it); two discrete targets
-        if (el.hdrLogoBox) {
-          const fullW = el.hdrLogoFull?.offsetWidth || 150;
-          const birdW = el.hdrLogoBird?.offsetWidth || 34;
-          if (fullW > 1) el.hdrLogoBox.style.width = (scrolled ? birdW : fullW) + 'px';
-        }
       }
 
       // screens crossfade — screen 0 (home) held through the showcase pan (P 0..2)
