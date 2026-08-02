@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import HeroSection from './HeroSection';
+import MediaCoverageSection from './MediaCoverageSection';
 import TeachersSection from './TeachersSection';
 import TestimonialSection from './TestimonialSection';
 
@@ -13,30 +14,29 @@ import TestimonialSection from './TestimonialSection';
  */
 
 const HEADER_MARKUP = `
-<!-- ============ HEADER (stable glass bar; theme follows the section beneath) ============ -->
+<!-- ============ HEADER (edge-to-edge atmospheric blur; theme follows the section beneath) ============ -->
   <header id="siteHeader" data-navbar-theme="dark">
-    <div id="hdrBar">
-      <div id="hdrBg" aria-hidden="true">
-        <span class="hdr-blur hdr-blur-1"></span>
-        <span class="hdr-blur hdr-blur-2"></span>
-        <span class="hdr-blur hdr-blur-3"></span>
-        <span class="hdr-tint"></span>
+    <!-- full-viewport-width blur layer, sits behind the nav and fades into the page -->
+    <div id="hdrBg" aria-hidden="true">
+      <span class="hdr-blur hdr-blur-1"></span>
+      <span class="hdr-blur hdr-blur-2"></span>
+      <span class="hdr-blur hdr-blur-3"></span>
+      <span class="hdr-tint"></span>
+    </div>
+    <div id="hdrInner">
+      <div id="hdrLogoBox">
+        <img id="hdrLogoLight" src="/assets/shikho-logo-white.svg" alt="Shikho">
+        <img id="hdrLogoColor" src="/assets/shikho-logo.svg" alt="" aria-hidden="true">
       </div>
-      <div id="hdrInner">
-        <div id="hdrLogoBox">
-          <img id="hdrLogoLight" src="/assets/shikho-logo-white.svg" alt="Shikho">
-          <img id="hdrLogoColor" src="/assets/shikho-logo.svg" alt="" aria-hidden="true">
-        </div>
-        <nav id="hdrNav">
-          <a href="#">কোর্স</a>
-          <a href="#">ফিচার</a>
-          <a href="#">মেন্টর</a>
-          <a href="#">ব্লগ</a>
-        </nav>
-        <div id="hdrCta">
-          <a id="hdrLogin" href="#">লগ ইন</a>
-          <a href="#" class="btn-3d btn-pink" style="font-family:'Hind Siliguri',sans-serif;font-size:15px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap;padding:12px 24px;border-radius:14px;">ফ্রি-তে শুরু করো</a>
-        </div>
+      <nav id="hdrNav">
+        <a href="#">কোর্স</a>
+        <a href="#">ফিচার</a>
+        <a href="#">মেন্টর</a>
+        <a href="#">ব্লগ</a>
+      </nav>
+      <div id="hdrCta">
+        <a id="hdrLogin" href="#">লগ ইন</a>
+        <a href="#" class="btn-3d btn-pink" style="font-family:'Hind Siliguri',sans-serif;font-size:15px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap;padding:12px 24px;border-radius:14px;">ফ্রি-তে শুরু করো</a>
       </div>
     </div>
   </header>
@@ -44,7 +44,10 @@ const HEADER_MARKUP = `
 
 const STATS_MARKUP = `
 <!-- ============ WINDOW HERO → STATS (one continuous pinned section) ============ -->
-  <section id="statsTrack" data-dark="1" data-navbar-theme="dark" style="position:relative;height:300vh;background:#050b26;z-index:1;">
+  <!-- data-navbar-surface: the stage is frozen to position:fixed while the clouds fly over it,
+       so this section keeps painting the full viewport after its own BOX has scrolled past the
+       header. The probe has to follow the stage, or the tone drops out mid-freeze. -->
+  <section id="statsTrack" data-dark="1" data-navbar-theme="dark" data-navbar-surface="#statsStage" style="position:relative;height:300vh;background:#050b26;z-index:1;">
     <div id="statsStage" style="position:sticky;top:0;height:100vh;overflow:hidden;">
       <!-- deep sky + sunrise glow -->
       <div style="position:absolute;inset:0;background:radial-gradient(120% 78% at 50% 122%,#ff8a3a 0%,#ff7c2e 7%,rgba(255,150,80,0) 46%),linear-gradient(180deg,#050b26 0%,#0a1a4e 32%,#155fce 70%,#4bb2ff 100%);"></div>
@@ -111,7 +114,10 @@ const STATS_MARKUP = `
 
 const FEATURE_MARKUP = `
 <!-- ============ CORE FEATURES (content over the dotted-white cloud background) ============ -->
-  <section id="featTrack" data-dark="0" data-navbar-theme="light" style="position:relative;height:400vh;margin-top:-100vh;z-index:2;">
+  <!-- data-navbar-surface: this section's BOX starts 100vh early (margin-top:-100vh) so it
+       overlaps the stats long before it is visible. The header probe must follow the cloud
+       image that actually paints the white section, not the box. -->
+  <section id="featTrack" data-dark="0" data-navbar-theme="light" data-navbar-surface="#featBase" style="position:relative;height:400vh;margin-top:-100vh;z-index:2;">
     <div id="featStage" style="position:sticky;top:0;height:100vh;overflow:hidden;">
 
       <!-- three parallax cloud layers that fly up over the stats. base = top cloud + full white dotted section; mid + bottom = extra cloud volume that sweeps up faster. positions driven by the scroll loop. -->
@@ -204,43 +210,48 @@ export default function ShikhoHome() {
 
     root.style.setProperty('--accent', '#FAA700');
 
-    // ---- navbar theme: observe which tagged section sits under the bar ----
+    // ---- navbar theme: whatever is painted directly under the bar wins ----
+    // A probe line one pixel below the fixed header's bottom edge. A section only owns the
+    // header once it actually reaches that line — entering the lower viewport is not enough.
     const siteHeader = q('#siteHeader');
 
-    let navIO: IntersectionObserver | null = null;
-    const overlapping = new Set<Element>();
+    // `data-navbar-surface` is an escape hatch for sections whose layout box is not where
+    // they paint (a negative margin-top, a pinned/translated stage). It names the element
+    // whose on-screen rect stands in for the section. Everything else probes its own box.
+    type NavRegion = { theme: string; surface: HTMLElement };
+    let navRegions: NavRegion[] = [];
     let navTheme = '';
 
-    const buildNavObserver = () => {
-      navIO?.disconnect();
-      overlapping.clear();
-      const themed = qa('[data-navbar-theme]').filter((el) => el !== siteHeader);
-      if (!themed.length || !siteHeader) return;
-
-      // a 1px-tall band at the navbar's vertical midpoint: whatever section
-      // crosses that line is literally the thing behind the bar
-      const y = 44;
-      navIO = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) {
-            if (e.isIntersecting) overlapping.add(e.target);
-            else overlapping.delete(e.target);
-          }
-          // later sections paint over earlier pinned ones, so last match wins
-          let pick: Element | null = null;
-          for (const el of themed) if (overlapping.has(el)) pick = el;
-          const next = pick?.getAttribute('data-navbar-theme') || 'light';
-          if (next === navTheme) return;
-          navTheme = next;
-          siteHeader.setAttribute('data-navbar-theme', next);
-        },
-        { rootMargin: `-${y}px 0px -${Math.max(0, window.innerHeight - y - 1)}px 0px`, threshold: 0 },
-      );
-      themed.forEach((el) => navIO!.observe(el));
+    const buildNavRegions = () => {
+      navRegions = qa('[data-navbar-theme]')
+        .filter((el) => el !== siteHeader && !siteHeader?.contains(el))
+        .map((el) => {
+          const sel = el.getAttribute('data-navbar-surface');
+          return {
+            theme: el.getAttribute('data-navbar-theme') || 'light',
+            surface: (sel && q<HTMLElement>(sel)) || el,
+          };
+        });
     };
 
-    buildNavObserver();
-    const onNavResize = () => buildNavObserver();
+    const syncNavTheme = () => {
+      if (!siteHeader || !navRegions.length) return;
+      const probeY = siteHeader.getBoundingClientRect().bottom + 1;
+      // document order == paint order here, so the last region crossing the probe is the
+      // one on top. No match (a gap between regions) keeps the current tone rather than
+      // snapping to a default.
+      let next = '';
+      for (const r of navRegions) {
+        const rect = r.surface.getBoundingClientRect();
+        if (rect.top <= probeY && rect.bottom > probeY) next = r.theme;
+      }
+      if (!next || next === navTheme) return;
+      navTheme = next;
+      siteHeader.setAttribute('data-navbar-theme', next);
+    };
+
+    buildNavRegions();
+    const onNavResize = () => buildNavRegions();
     window.addEventListener('resize', onNavResize, { passive: true });
 
     // ---- window-hero → stats cascade (one pinned section) ----
@@ -296,6 +307,9 @@ export default function ShikhoHome() {
 
     const render = () => {
       const vh = window.innerHeight;
+
+      // read the probe before this frame's writes, so the rects come from a settled layout
+      syncNavTheme();
 
       if (statsTrack && statsGroup) {
         const vw = window.innerWidth;
@@ -464,7 +478,6 @@ export default function ShikhoHome() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onNavResize);
-      navIO?.disconnect();
     };
   }, []);
 
@@ -476,6 +489,7 @@ export default function ShikhoHome() {
       <div dangerouslySetInnerHTML={{ __html: FEATURE_MARKUP }} />
       <TeachersSection />
       <TestimonialSection />
+      <MediaCoverageSection />
       <div dangerouslySetInnerHTML={{ __html: FOOTER_MARKUP }} />
     </div>
   );

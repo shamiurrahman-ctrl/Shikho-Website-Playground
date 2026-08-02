@@ -94,9 +94,10 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 2px 0 #1C2C5A, 0 8px 14px rgba(0, 0, 0, .30);
 }
 
-/* ---- Site header: a stable glass bar that never morphs on scroll ----
-   Only background tint, blur strength, border, colours and shadow animate;
-   width, height, radius and position are fixed at every scroll offset. */
+/* ---- Site header: an edge-to-edge atmospheric blur that never morphs on scroll ----
+   There is no bar, fill, border or outline — only a full-viewport-width blur layer
+   that dissolves downward into the page. Just tint, blur strength and colours
+   animate; height and position are fixed at every scroll offset. */
 #siteHeader {
   --hdr-ease: cubic-bezier(0.22, 0.75, 0.28, 1);
   --hdr-dur: 0.3s;
@@ -105,28 +106,26 @@ body {
   left: 0;
   right: 0;
   z-index: 60;
-  display: flex;
-  justify-content: center;
   pointer-events: none;
 }
-#hdrBar {
-  position: relative;
-  box-sizing: border-box;
-  pointer-events: auto;
-  width: calc(100% - clamp(24px, 8vw, 160px));
-  margin-top: 12px;
-  border: 1px solid transparent;
-  border-radius: 18px;                 /* subtle, never a capsule */
-  overflow: hidden;                    /* clips the blur bands to the rounded box */
-  transition:
-    border-color var(--hdr-dur) var(--hdr-ease),
-    box-shadow var(--hdr-dur) var(--hdr-ease);
-}
 
-/* --- background layer: kept separate so the nav content stays sharp --- */
+/* --- background layer: spans the full viewport width, independent of the
+   content column, so the softening has no visible rectangular boundary.
+   It overhangs the nav row at the bottom to give the mask room to fade out. --- */
 #hdrBg {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: -26px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+  overflow: visible;
   z-index: 0;
   pointer-events: none;
 }
@@ -137,38 +136,46 @@ body {
   display: block;
 }
 /* Progressive blur: three bands, each blurrier and masked shorter than the last,
-   so the softening is strongest behind the content and dissolves before the
-   bottom edge instead of ending as a flat frosted rectangle. */
+   so the softening is strongest at the top of the viewport and has fully
+   dissolved by the bottom of the layer — never a flat frosted rectangle. */
 .hdr-blur {
+  border-radius: 0;
   transition:
     -webkit-backdrop-filter var(--hdr-dur) var(--hdr-ease),
     backdrop-filter var(--hdr-dur) var(--hdr-ease);
 }
 .hdr-blur-1 {
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 64%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 64%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 44%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 44%, transparent 100%);
 }
 .hdr-blur-2 {
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 76%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 34%, transparent 76%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 23%, transparent 60%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 23%, transparent 60%);
 }
 .hdr-blur-3 {
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 48%);
-  mask-image: linear-gradient(180deg, #000 0%, transparent 48%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 37%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 37%);
 }
 .hdr-tint {
+  border-radius: 0;
   transition: background var(--hdr-dur) var(--hdr-ease);
 }
 
+/* Nav content stays inside the responsive content column. The extra top padding
+   replaces the 12px the old floating bar used to gain from its margin, so the
+   logo/links sit at exactly the same height as before. */
 #hdrInner {
   position: relative;
   z-index: 1;                          /* content sits above the blur */
+  pointer-events: auto;
   box-sizing: border-box;
+  width: min(92vw, 1600px);
+  margin-inline: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 36px;
-  padding: 22px clamp(20px, 3.3vw, 48px);
+  padding: 34px clamp(20px, 3.3vw, 48px) 22px;
 }
 
 /* --- over dark or busy backgrounds --- */
@@ -185,12 +192,8 @@ body {
   backdrop-filter: blur(24px);
 }
 #siteHeader[data-navbar-theme='dark'] .hdr-tint {
-  /* the Figma's scrim: black 38% fading out downward */
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, rgba(0, 0, 0, 0) 100%);
-}
-#siteHeader[data-navbar-theme='dark'] #hdrBar {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 12px 32px rgba(10, 16, 40, 0.28);
+  /* the Figma's scrim: black 38% fading out downward, gone before the layer ends */
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, rgba(0, 0, 0, 0) 88%);
 }
 #siteHeader[data-navbar-theme='dark'] #hdrNav,
 #siteHeader[data-navbar-theme='dark'] #hdrLogin { color: #fff; }
@@ -211,11 +214,7 @@ body {
   backdrop-filter: blur(15px);
 }
 #siteHeader[data-navbar-theme='light'] .hdr-tint {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 100%);
-}
-#siteHeader[data-navbar-theme='light'] #hdrBar {
-  border-color: rgba(0, 0, 0, 0.07);
-  box-shadow: 0 10px 30px rgba(10, 16, 40, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 88%);
 }
 #siteHeader[data-navbar-theme='light'] #hdrNav,
 #siteHeader[data-navbar-theme='light'] #hdrLogin { color: #0a0c11; }
@@ -261,7 +260,7 @@ body {
   transition: color var(--hdr-dur) var(--hdr-ease);
 }
 @media (max-width: 860px) {
-  #hdrInner { gap: 18px; padding: 16px clamp(14px, 3vw, 24px); }
+  #hdrInner { gap: 18px; padding: 28px clamp(14px, 3vw, 24px) 16px; }
   #hdrNav { gap: 18px; font-size: 15px; }
 }
 
@@ -1508,22 +1507,17 @@ video::-webkit-media-controls-start-playback-button {
   color: #fff;
 }
 /* floating play cursor — follows the pointer with an eased trail */
-.tst-cursor {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 5;
-  width: 72px;
-  height: 72px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.18s var(--ease), scale 0.18s var(--ease);
-  scale: 0.85;
-  will-change: transform;
+/* The floating play lens is <LiquidGlassPlayCursor/> now (Tailwind-styled,
+   rendered inside .tst-stage). Only the OS-cursor policy lives here: the stage
+   hides the pointer so the lens can stand in for it, while every interactive
+   child inside the stage takes its normal pointer back. */
+.tst-stage :is(button, a, [role='tab'], input, select, textarea) {
+  cursor: pointer;
 }
-.tst-cursor img { width: 100%; height: 100%; display: block; }
-.tst-cursor[data-on='1'] { opacity: 1; scale: 1; }
-.tst-cursor[data-suppressed='1'] { opacity: 0; scale: 0.85; }
+.tst-stage:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline-offset: -5px;
+}
 
 /* ---- glass quote card ---- */
 .tst-quote {
@@ -1709,7 +1703,7 @@ video::-webkit-media-controls-start-playback-button {
   /* keep top nav-aware; only widen the columns */
   .tst-overlay-content { width: clamp(260px, 52%, 542px); }
   .tst-quote { width: clamp(300px, 62%, 704px); }
-  .tst-cursor { width: 60px; height: 60px; }
+  /* lens diameter is driven by the component's own matchMedia (76px → 64px) */
 }
 
 /* ---- short viewports: tighten before anything can overlap ---- */
@@ -1744,8 +1738,9 @@ video::-webkit-media-controls-start-playback-button {
     gap: 10px;
   }
   .tst-divider { display: block; width: 140px; }
-  /* touch devices have no hover pointer to follow */
-  .tst-cursor { display: none; }
+  /* touch devices have no hover pointer to follow; .tst-stage above already
+     restores cursor:pointer for this breakpoint */
+  .tst-lens { display: none; }
   .tst-thumbs { bottom: 12px; gap: 6px; }
   .tst-thumb { width: 58px; height: 33px; }
   .tst-thumb[data-active='1'] { width: 78px; height: 46px; padding: 3px; border-radius: 7px; }
@@ -1763,9 +1758,359 @@ video::-webkit-media-controls-start-playback-button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tst-bg-layer, .tst-thumb, .tst-cursor, .tvm-panel, .tvm-scrim {
+  /* the lens handles its own reduced-motion path via useReducedMotion() */
+  .tst-bg-layer, .tst-thumb, .tvm-panel, .tvm-scrim {
     transition-duration: 0.01ms;
   }
   .tst .tst-w,
   .tst[data-revealed] .tst-w { animation: none; opacity: 1; filter: none; transform: none; }
+}
+
+/* ============================================================================
+   MEDIA COVERAGE — "গণমাধ্যমে Shikho"   (Figma 150:18738)
+   Layout, type and colour are the Figma's: 320x412 cards, 24px radius, 22px
+   gap, a 224px logo panel over a white scrim, headline + date always visible.
+   The hover choreography follows the brief instead — 9.5deg (not the Figma's
+   15), spring 180/20/0.8, and a +/-2deg cursor tilt — so the numbers here are
+   deliberately not the ones in the frame.
+
+   Transform/opacity/filter only. The marquee is a CSS animation specifically so
+   hovering can pause it with animation-play-state and resume in place.
+   ========================================================================== */
+.mdc {
+  --card-w: 320px;
+  --card-h: 412px;
+  --panel-h: 224px;
+  --radius: 24px;
+  --gap: 22px;
+  --loop: 56s;
+  position: relative;
+  /* Figma "Background": white → #e0e7ea band → white */
+  background: linear-gradient(180deg, #E0E7EA 0%, #E0E7EA 55%, #FBFAF7 100%);
+  padding: 132px 0 118px;
+  overflow-x: clip;
+}
+
+/* ---- header (Figma "Main Header": gap 30, 916 / 612 wide) ---- */
+.mdc-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  text-align: center;
+  margin: 0 auto 68px;
+  padding-inline: 24px;
+}
+.mdc-title {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 700;
+  font-size: 56px;
+  line-height: 64px;
+  letter-spacing: -0.46px;
+  color: #161b33;
+  max-width: 916px;
+  margin: 0;
+}
+.mdc-sub {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.46px;
+  color: #5B616D;
+  max-width: 612px;
+  margin: 0;
+}
+
+/* ---- marquee ----
+   overflow-x:clip (never `hidden`) keeps the block axis genuinely visible so the
+   screenshot can rise past the top edge; `hidden` would force overflow-y:auto
+   and decapitate it. The top padding is the runway it rises into. */
+.mdc-marquee {
+  position: relative;
+  overflow-x: clip;
+  overflow-y: visible;
+  padding: 132px 0 24px;
+  margin-top: -120px;
+}
+.mdc-track {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap);
+  width: max-content;
+  padding-inline: calc(var(--gap) / 2);
+  animation: mdc-scroll var(--loop) linear infinite;
+  will-change: transform;
+}
+/* the list renders twice, so one period is exactly half the track */
+@keyframes mdc-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+.mdc-marquee[data-paused='1'] .mdc-track { animation-play-state: paused; }
+
+/* ---- card (Figma "Source Box") ---- */
+.mdc-card {
+  position: relative;
+  flex: none;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--radius);
+  text-decoration: none;
+  outline: none;
+  isolation: isolate;
+}
+.mdc-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* Figma "Source Background" — white → #414651 on hover */
+.mdc-face {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.16);
+}
+
+/* Figma "Mask Background": #C1C9CC at 20%, top corners only */
+.mdc-panel {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 1;
+  height: var(--panel-h);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: rgba(193, 201, 204, 0.2);
+  display: grid;
+  place-items: center;
+  padding: 30px 34px;
+  overflow: hidden;
+}
+.mdc-logo { display: block; width: 100%; height: 100%; }
+.mdc-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Figma "Info Background": transparent → white by 30%, from y=132, h=280 */
+.mdc-scrim {
+  position: absolute;
+  inset: 132px 0 0 0;
+  z-index: 2;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 30%);
+  pointer-events: none;
+}
+
+/* ---- progressive layer blur (Figma: layer blur, 80 → 0 down the card) ----
+   CSS has no progressive blur, so stack three blurred copies of the article
+   shot and give each a vertical alpha mask that dies off sooner than the last.
+   Where all three overlap (the top) reads as ~32px of blur; by mid-card only
+   the softest survives; below that it is gone, which is what keeps the headline
+   crisp. A uniform backdrop-filter would frost the text instead. */
+.mdc-blur {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.mdc-blur i {
+  position: absolute;
+  display: block;
+}
+/* the three echo layers only — NOT `.mdc-blur i`, whose extra type selector
+   would outrank .mdc-blur-veil and hand the veil a copy of the screenshot */
+/* Tall enough to still be alive below the screenshot. The floating shot covers
+   the card from its top edge down to y=196, so anything that dies before that
+   is invisible — the echo has to live in the ~196-330 band. */
+.mdc-blur-l1,
+.mdc-blur-l2,
+.mdc-blur-l3 {
+  left: -10%;
+  right: -10%;
+  top: -25%;
+  height: 120%;
+  background-image: var(--shot);
+  background-size: cover;
+  background-position: center top;
+  transform: scale(1.15);
+  transform-origin: 50% 0;
+}
+/* Strongest. Holds full alpha through the region the screenshot hides, so it is
+   still at ~0.8 where the shot's lower edge exposes it (~y=196), then dies at
+   ~y=290 — the visible "cast" that reads as the blur. */
+.mdc-blur-l1 {
+  filter: blur(32px) saturate(0.85);
+  opacity: 0.42;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 46%, rgba(0, 0, 0, 0.72) 58%, transparent 69%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 46%, rgba(0, 0, 0, 0.72) 58%, transparent 69%);
+}
+/* mid strength, carries furthest — trails to ~y=335, behind (never through) the
+   headline, which sits a layer above and is additionally backed by the veil */
+.mdc-blur-l2 {
+  filter: blur(20px) saturate(0.85);
+  opacity: 0.28;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0, 0, 0, 0.55) 64%, transparent 77%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0, 0, 0, 0.55) 64%, transparent 77%);
+}
+/* faintest, keeps a little detail in the band just under the shot */
+.mdc-blur-l3 {
+  filter: blur(10px) saturate(0.85);
+  opacity: 0.12;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.3) 57%, transparent 67%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.3) 57%, transparent 67%);
+}
+/* settles the blur back into the card fill so the text keeps its contrast */
+.mdc-blur-veil {
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(65, 70, 81, 0.05) 0%,
+    rgba(65, 70, 81, 0.45) 58%,
+    #414651 100%
+  );
+}
+
+/* Figma "Info Box": x=26, y=253, w=262, gap 11 */
+.mdc-info {
+  position: absolute;
+  left: 26px;
+  top: 253px;
+  width: 262px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
+  pointer-events: none;
+}
+.mdc-headline {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.46px;
+  color: #0A0C11;
+  height: 96px;                 /* exactly 3 lines, per the frame */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+.mdc-date {
+  font-family: 'Anek Bangla', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 32px;
+  color: #5B616D;
+}
+
+/* ---- floating screenshot ----
+   Sized and placed so the hover end-state lands where the Figma puts it
+   (overlapping the card's top edge), reached via the brief's transform. */
+.mdc-shot {
+  position: absolute;
+  z-index: 5;
+  left: -7px;                   /* (320 - 333) / 2 — it overhangs both sides */
+  top: 13px;                    /* + the brief's -55px lands it at -42 */
+  width: 333px;
+  transform-origin: 0% 100%;    /* bottom left, per the brief */
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.mdc-frame {
+  display: block;
+  border-radius: 12px;          /* Figma "Card Image" */
+  overflow: hidden;
+  background: #F4F5F7;
+  box-shadow: 0 4px 7px rgba(0, 0, 0, 0.2), 0 30px 80px rgba(0, 0, 0, 0.2);
+}
+/* minimal browser chrome: three dots, no URL bar, no controls */
+.mdc-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  background: #ECEEF1;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.mdc-bar i { width: 8px; height: 8px; border-radius: 50%; }
+.mdc-bar i:nth-child(1) { background: #FF5F57; }
+.mdc-bar i:nth-child(2) { background: #FEBC2E; }
+.mdc-bar i:nth-child(3) { background: #28C840; }
+.mdc-shot-img {
+  display: block;
+  aspect-ratio: 333 / 212;
+  overflow: hidden;
+  background: #fff;
+}
+.mdc-shot-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 0;
+  display: block;
+}
+
+/* Figma "Button Container": 74px glass circle centred on the screenshot */
+.mdc-arrow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 74px;
+  height: 74px;
+  margin: -37px 0 0 -37px;
+  border-radius: 50%;
+  -webkit-backdrop-filter: blur(15.5px);
+  backdrop-filter: blur(15.5px);
+  will-change: transform, opacity;
+}
+.mdc-arrow img { width: 100%; height: 100%; display: block; }
+
+/* ---- tablet: 3–4 cards ---- */
+@media (max-width: 1024px) {
+  .mdc { --card-w: 286px; --card-h: 380px; --panel-h: 200px; --gap: 18px; padding: 100px 0 92px; }
+  .mdc-title { font-size: 44px; line-height: 52px; }
+  .mdc-sub { font-size: 20px; line-height: 28px; }
+  .mdc-scrim { inset: 118px 0 0 0; }
+  .mdc-info { left: 22px; top: 228px; width: 242px; }
+  .mdc-headline { font-size: 21px; line-height: 29px; height: 87px; }
+  .mdc-shot { width: 298px; left: -6px; }
+}
+
+/* ---- mobile: 2 cards ---- */
+@media (max-width: 640px) {
+  .mdc { --card-w: 232px; --card-h: 322px; --panel-h: 164px; --gap: 14px; padding: 72px 0 68px; }
+  .mdc-head { gap: 18px; margin-bottom: 44px; }
+  .mdc-title { font-size: 32px; line-height: 40px; }
+  .mdc-sub { font-size: 16px; line-height: 24px; }
+  .mdc-panel { padding: 22px 24px; }
+  .mdc-scrim { inset: 96px 0 0 0; }
+  .mdc-info { left: 18px; top: 190px; width: 196px; gap: 8px; }
+  .mdc-headline { font-size: 17px; line-height: 24px; height: 72px; }
+  .mdc-date { font-size: 13px; line-height: 24px; }
+  .mdc-shot { width: 242px; left: -5px; top: 10px; }
+  .mdc-arrow { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+  .mdc-marquee { padding-top: 108px; margin-top: -98px; }
+}
+
+/* ---- reduced motion ----
+   Framer Motion handles the card choreography via useReducedMotion(); here we
+   only stop the marquee. `overflow-x:auto` forces the block axis to compute to
+   `auto`, so the screenshot could no longer escape upward — it stays suppressed
+   in this mode, and the card keeps its logo, headline, date and link. */
+@media (prefers-reduced-motion: reduce) {
+  .mdc-track { animation: none; }
+  .mdc-marquee {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .mdc-marquee::-webkit-scrollbar { display: none; }
+  .mdc-card { scroll-snap-align: center; }
+  .mdc-shot,
+  .mdc-blur { display: none; }
 }

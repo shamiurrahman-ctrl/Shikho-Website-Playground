@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LiquidGlassPlayCursor } from '@/components/ui/apple-tahoe-liquid-glass-button';
 import VideoModal from './VideoModal';
 import { posterFor, STORIES, type Story } from './testimonials';
 
@@ -306,9 +307,10 @@ export default function TestimonialSection() {
 
   const ringRef = useRef<SVGCircleElement | null>(null);
   const elapsedRef = useRef(0);
-  const cursorRef = useRef<HTMLDivElement>(null);
-  const ptr = useRef({ x: 0, y: 0, cx: 0, cy: 0 });
+  const stageRef = useRef<HTMLDivElement>(null);
   const [cursorOn, setCursorOn] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const [lensSize, setLensSize] = useState(76);
   const sectionRef = useRef<HTMLElement>(null);
   const [revealed, setRevealed] = useState(false);
 
@@ -416,64 +418,72 @@ export default function TestimonialSection() {
     return () => io.disconnect();
   }, []);
 
-  /* ---- floating play cursor over the video ---- */
+  /* ---- floating liquid-glass play lens over the video ---- */
 
-  /** anything that owns its own pointer behaviour keeps the normal cursor */
-  const INTERACTIVE = 'button, a, [role="tab"], .tst-quote';
-  const isInteractive = (t: EventTarget | null) =>
-    !!(t as HTMLElement | null)?.closest?.(INTERACTIVE);
-
-  /** suppression is written straight to the node so mousemove costs no re-render */
-  const suppress = useCallback((v: boolean) => {
-    const el = cursorRef.current;
-    if (el) el.dataset.suppressed = v ? '1' : '';
+  /**
+   * Anything that owns its own pointer behaviour keeps the normal cursor.
+   * The stage itself carries role="button" for keyboard users, so it would
+   * match this selector — it's excluded explicitly, or the lens would be
+   * suppressed everywhere.
+   */
+  const INTERACTIVE = 'button, a, [role="tab"], [role="button"], input, select, textarea, .tst-quote';
+  const isInteractive = useCallback((t: EventTarget | null) => {
+    const hit = (t as HTMLElement | null)?.closest?.(INTERACTIVE);
+    return !!hit && hit !== stageRef.current;
   }, []);
+
+  /** over a thumbnail/link the lens hides and the OS cursor comes back */
+  const [overInteractive, setOverInteractive] = useState(false);
 
   const onStageEnter = useCallback(
     (e: React.MouseEvent) => {
-      // seed both positions so the cursor appears under the pointer, not flying in
-      ptr.current = { x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY };
-      suppress(isInteractive(e.target));
+      setOverInteractive(isInteractive(e.target));
       setCursorOn(true);
     },
-    [suppress],
+    [isInteractive],
   );
 
   const onStageMove = useCallback(
     (e: React.MouseEvent) => {
-      ptr.current.x = e.clientX;
-      ptr.current.y = e.clientY;
-      suppress(isInteractive(e.target));
+      const next = isInteractive(e.target);
+      // only re-render when the answer actually flips
+      setOverInteractive((prev) => (next === prev ? prev : next));
     },
-    [suppress],
+    [isInteractive],
   );
+
+  const openModal = useCallback(() => setModalStory(frontStory), [frontStory]);
 
   const onStageClick = useCallback(
     (e: React.MouseEvent) => {
       if (isInteractive(e.target)) return;
-      setModalStory(frontStory);
+      openModal();
     },
-    [frontStory],
+    [openModal, isInteractive],
+  );
+
+  /** keyboard parity: the stage is focusable, Enter/Space opens the modal */
+  const onStageKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (isInteractive(e.target)) return; // let the thumbnail handle its own key
+      e.preventDefault();
+      openModal();
+    },
+    [openModal, isInteractive],
   );
 
   // the modal takes over the pointer entirely, so derive rather than store
-  const showCursor = cursorOn && !modalStory;
+  const showCursor = cursorOn && !modalStory && !overInteractive;
 
-  // eased trail — lerps toward the pointer each frame rather than snapping
+  // tablet gets a slightly smaller lens (60–68px band)
   useEffect(() => {
-    if (!showCursor) return;
-    let raf = 0;
-    const loop = () => {
-      const p = ptr.current;
-      p.cx += (p.x - p.cx) * 0.18;
-      p.cy += (p.y - p.cy) * 0.18;
-      const el = cursorRef.current;
-      if (el) el.style.transform = `translate3d(${p.cx}px, ${p.cy}px, 0) translate(-50%, -50%)`;
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [showCursor]);
+    const mq = window.matchMedia('(max-width: 900px)');
+    const sync = () => setLensSize(mq.matches ? 64 : 76);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   /**
    * One layer per story id, deduplicated. front claims its id first, so even if
@@ -501,10 +511,21 @@ export default function TestimonialSection() {
       <div className="tst-frame" data-switching={switching ? '1' : undefined}>
         <div
           className="tst-stage"
+          ref={stageRef}
+          role="button"
+          tabIndex={0}
+          aria-label="সম্পূর্ণ গল্প দেখুন"
+          data-lens={showCursor ? '1' : undefined}
           onMouseEnter={onStageEnter}
           onMouseMove={onStageMove}
-          onMouseLeave={() => setCursorOn(false)}
+          onMouseLeave={() => {
+            setCursorOn(false);
+            setPressed(false);
+          }}
+          onPointerDown={(e) => !isInteractive(e.target) && setPressed(true)}
+          onPointerUp={() => setPressed(false)}
           onClick={onStageClick}
+          onKeyDown={onStageKeyDown}
         >
           {layers.map((l) => (
             <StoryLayer
@@ -527,14 +548,20 @@ export default function TestimonialSection() {
 
           <StoryOverlay story={active} />
           <ThumbnailList activeIndex={activeIndex} onSelect={select} ringRef={ringRef} />
+
+          {/* liquid-glass play lens — lives inside the stage so its coordinates
+              are container-relative, and is pointer-events:none so the stage
+              underneath stays the real click target */}
+          <LiquidGlassPlayCursor
+            containerRef={stageRef}
+            active={showCursor}
+            pressed={pressed}
+            size={lensSize}
+            className="tst-lens"
+          />
         </div>
 
         <QuoteCard story={active} />
-      </div>
-
-      {/* floating play cursor — pointer-events:none so it never blocks the click */}
-      <div className="tst-cursor" ref={cursorRef} data-on={showCursor ? '1' : undefined} aria-hidden>
-        <Image src="/assets/testimonials/play-button.svg" alt="" width={72} height={72} />
       </div>
 
       <VideoModal story={modalStory} onClose={() => setModalStory(null)} />

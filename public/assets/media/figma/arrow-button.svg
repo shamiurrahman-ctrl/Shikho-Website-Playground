@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="74" height="74" viewBox="0 0 74 74" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Button Container">
+<foreignObject x="-15.5" y="-15.5" width="105" height="105"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(7.75px);clip-path:url(#bgblur_0_151_36668_clip_path);height:100%;width:100%"></div></foreignObject><circle id="Ellipse 2343" data-figma-bg-blur-radius="15.5" cx="37" cy="37" r="37" fill="#333333" fill-opacity="0.73"/>
+<path id="Arrow 2" d="M27.4393 45.4393C26.8536 46.0251 26.8536 46.9749 27.4393 47.5607C28.0251 48.1464 28.9749 48.1464 29.5607 47.5607L28.5 46.5L27.4393 45.4393ZM48 28.5C48 27.6716 47.3284 27 46.5 27L33 27C32.1716 27 31.5 27.6716 31.5 28.5C31.5 29.3284 32.1716 30 33 30H45V42C45 42.8284 45.6716 43.5 46.5 43.5C47.3284 43.5 48 42.8284 48 42L48 28.5ZM28.5 46.5L29.5607 47.5607L47.5607 29.5607L46.5 28.5L45.4393 27.4393L27.4393 45.4393L28.5 46.5Z" fill="#F4F4F6"/>
+</g>
+<defs>
+<clipPath id="bgblur_0_151_36668_clip_path" transform="translate(15.5 15.5)"><circle cx="37" cy="37" r="37"/>
+</clipPath></defs>
+</svg>
