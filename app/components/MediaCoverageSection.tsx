@@ -9,7 +9,7 @@ import {
   useTransform,
   type Variants,
 } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { MEDIA, type MediaItem } from './media';
 
 /**
@@ -39,9 +39,10 @@ const LOOP = [...MEDIA, ...MEDIA];
 const SPRING = { type: 'spring' as const, stiffness: 180, damping: 20, mass: 0.8 };
 
 /* Choreography — background, then screenshot, then the text in order. */
+/* the white card recedes; the dark fill arrives as the progressive-blur shape */
 const faceV: Variants = {
-  off: { backgroundColor: '#FFFFFF' },
-  on: { backgroundColor: '#414651' },
+  off: { opacity: 1 },
+  on: { opacity: 0 },
 };
 const fadeOutV: Variants = {
   off: { opacity: 1 },
@@ -157,22 +158,20 @@ function MediaCard({
         transition={{ duration: reduced ? 0 : 0.3 }}
       />
 
-      {/* Progressive blur: three blurred copies of the article shot, each masked
-          to dissolve further down the card, so blur *strength* falls off with
-          depth the way Figma's progressive layer blur does. A single
-          backdrop-filter can't do this — it would frost the headline too.
-          Always mounted, opacity-animated, so it never flashes on first hover. */}
+      {/* The dark fill, carrying Figma's progressive layer blur (80 at the top
+          easing to 0 at the bottom): four copies of the card rect at falling
+          blur radii, each masked to a band. Always mounted and opacity-animated
+          so it never flashes on first hover. */}
       <motion.span
         className="mdc-blur"
         aria-hidden
-        style={{ ['--shot' as string]: `url("${item.shot}")` }}
         variants={blurV}
         transition={{ duration: reduced ? 0 : 0.36, ease: [0.22, 0.75, 0.28, 1], delay: reduced ? 0 : 0.05 }}
       >
         <i className="mdc-blur-l1" />
         <i className="mdc-blur-l2" />
         <i className="mdc-blur-l3" />
-        <i className="mdc-blur-veil" />
+        <i className="mdc-blur-l4" />
       </motion.span>
 
       <span className="mdc-info">
@@ -239,6 +238,56 @@ export default function MediaCoverageSection() {
   const [active, setActive] = useState<string | null>(null);
   const reduced = useReducedMotion() ?? false;
   const sectionRef = useRef<HTMLElement>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+
+  /* Per-word blur reveal, driven by where the heading sits in the viewport
+     rather than by a one-shot observer, so the words blur back out again on the
+     way past. Same curve as the hero's wordFx: opacity ap*(1-dp), blur 10px at
+     either end, and a 16px rise in / lift out, staggered by word index. */
+  useEffect(() => {
+    const head = headRef.current;
+    if (!head || reduced) return;
+    const words = Array.from(head.querySelectorAll<HTMLElement>('.mdc-w'));
+    if (!words.length) return;
+
+    const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
+    const mc = (v: number, a: number, b: number) => clamp((v - a) / (b - a), 0, 1);
+    const eo = (t: number) => 1 - Math.pow(1 - t, 3);
+    // [appearStart, appearEnd, appearStagger, departStart, departEnd, departStagger]
+    const FX = {
+      t: [0.14, 0.34, 0.02, 0.7, 0.88, 0.014],
+      s: [0.18, 0.38, 0.007, 0.7, 0.88, 0.005],
+    } as const;
+
+    head.dataset.fx = '1'; // hands the words over from the CSS resting state
+    let raf = 0;
+    let last = -1;
+    const render = () => {
+      const r = head.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // 0 as the heading enters from the bottom, 1 once it has cleared the top
+      const p = clamp((vh - r.top) / (vh + r.height), 0, 1);
+      if (Math.abs(p - last) > 0.0004) {
+        last = p;
+        for (const w of words) {
+          const [aS, aE, aStag, dS, dE, dStag] = FX[(w.dataset.w as 't' | 's') ?? 't'];
+          const i = Number(w.dataset.i) || 0;
+          const ap = mc(p, aS + i * aStag, aE + i * aStag);
+          const dp = mc(p, dS + i * dStag, dE + i * dStag);
+          w.style.opacity = String(ap * (1 - dp));
+          const blur = (1 - ap) * 10 + dp * 10;
+          w.style.filter = blur < 0.05 ? 'none' : `blur(${blur.toFixed(2)}px)`;
+          w.style.transform = `translateY(${((1 - eo(ap)) * 16 + dp * -16).toFixed(2)}px)`;
+        }
+      }
+      raf = requestAnimationFrame(render);
+    };
+    raf = requestAnimationFrame(render);
+    return () => {
+      cancelAnimationFrame(raf);
+      delete head.dataset.fx;
+    };
+  }, [reduced]);
 
   // a revealed card on touch has no pointerleave to close it — a tap elsewhere does
   useEffect(() => {
@@ -264,9 +313,30 @@ export default function MediaCoverageSection() {
 
   return (
     <section className="mdc" ref={sectionRef} data-dark="0" data-navbar-theme="light">
-      <div className="mdc-head">
-        <h2 className="mdc-title">{TITLE}</h2>
-        <p className="mdc-sub">{SUB}</p>
+      {/* split per word so the heading can blur in on approach and back out on
+          the way past — the same treatment the hero and core features use */}
+      <div className="mdc-head" ref={headRef}>
+        <h2 className="mdc-title">
+          {TITLE.split(' ').map((w, i) => (
+            // real space text nodes between spans keep normal line-breaking
+            <Fragment key={`t-${i}`}>
+              {i > 0 && ' '}
+              <span className="mdc-w" data-w="t" data-i={i}>
+                {w}
+              </span>
+            </Fragment>
+          ))}
+        </h2>
+        <p className="mdc-sub">
+          {SUB.split(' ').map((w, i) => (
+            <Fragment key={`s-${i}`}>
+              {i > 0 && ' '}
+              <span className="mdc-w" data-w="s" data-i={i}>
+                {w}
+              </span>
+            </Fragment>
+          ))}
+        </p>
       </div>
 
       {/* clip horizontally only — the screenshot has to escape upward */}

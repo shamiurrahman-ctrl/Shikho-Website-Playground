@@ -1822,6 +1822,20 @@ video::-webkit-media-controls-start-playback-button {
   margin: 0;
 }
 
+/* Per-word blur reveal. The heading renders hidden and the scroll loop takes
+   over on its first frame (marked by data-fx), so there is no flash of unstyled
+   words between hydration and the first measurement. */
+.mdc-w {
+  display: inline-block;
+  white-space: pre;
+  will-change: opacity, filter, transform;
+}
+.mdc-head:not([data-fx]) .mdc-w {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(16px);
+}
+
 /* ---- marquee ----
    overflow-x:clip (never `hidden`) keeps the block axis genuinely visible so the
    screenshot can rise past the top edge; `hidden` would force overflow-y:auto
@@ -1858,17 +1872,24 @@ video::-webkit-media-controls-start-playback-button {
   border-radius: var(--radius);
   text-decoration: none;
   outline: none;
-  isolation: isolate;
+  /* deliberately NOT a stacking context (no isolation, no z-index): the blur
+     underlay and the crisp screenshot have to resolve against .mdc-track so one
+     can sit below every card and the other above every card. Isolating here
+     would trap both inside this card and force them to move together. */
 }
 .mdc-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
-/* Figma "Source Background" — white → #414651 on hover */
+/* Figma "Source Background" — the idle white card. It fades out on hover
+   rather than turning dark, because the dark fill is the progressive-blur
+   shape below, whose whole point is that its top is *not* a solid edge. */
 .mdc-face {
   position: absolute;
   inset: 0;
   z-index: 0;
   border-radius: var(--radius);
-  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.16);
+  background: #fff;
+  /* Figma drop shadow on "Source Background": x0 y2, blur 2, spread 0, #000 8% */
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.08);
 }
 
 /* Figma "Mask Background": #C1C9CC at 20%, top corners only */
@@ -1903,70 +1924,66 @@ video::-webkit-media-controls-start-playback-button {
    Where all three overlap (the top) reads as ~32px of blur; by mid-card only
    the softest survives; below that it is gone, which is what keeps the headline
    crisp. A uniform backdrop-filter would frost the text instead. */
+/* ---- progressive layer blur on the dark fill ----
+   Figma puts a *progressive* layer blur on the card's dark shape: 80 at the top
+   easing to 0 at the bottom, so the rect is crisp along its lower edge and
+   dissolves into nothing at the top, leaving the floating screenshot sitting in
+   a soft dark haze. A CSS filter takes one radius, so stack four copies of the
+   same rounded rect at decreasing blur and mask each to a band — the composite
+   reads as a single continuously-sharpening shape. All four are the same opaque
+   colour, so the overlaps cost nothing.
+
+   Each layer's box is 72px larger than the card on every side, with the rect
+   drawn back at the card bounds by ::before. That gives the blur somewhere to
+   spill *inside the mask*; masking the card box directly would slice the soft
+   edges off at 50% alpha and leave a hard vertical seam up both sides. */
 .mdc-blur {
   position: absolute;
   inset: 0;
-  z-index: 3;
-  border-radius: inherit;
-  overflow: hidden;
+  z-index: -1;                  /* under every card in the row; neighbours
+                                   occlude the spill naturally */
   pointer-events: none;
-  will-change: transform, opacity;
+  /* not clipped — the soft top has to spread past the card box. No will-change:
+     it would pre-rasterise a 640x732 layer for all 12 cards at once. */
 }
 .mdc-blur i {
   position: absolute;
+  inset: -160px;                /* blur(80) reaches ~160px; a tighter box had the
+                                   mask cut it dead — that was the hard vertical
+                                   seam up either side of the card */
   display: block;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
-/* the three echo layers only — NOT `.mdc-blur i`, whose extra type selector
-   would outrank .mdc-blur-veil and hand the veil a copy of the screenshot */
-/* Tall enough to still be alive below the screenshot. The floating shot covers
-   the card from its top edge down to y=196, so anything that dies before that
-   is invisible — the echo has to live in the ~196-330 band. */
-.mdc-blur-l1,
-.mdc-blur-l2,
-.mdc-blur-l3 {
-  left: -10%;
-  right: -10%;
-  top: -25%;
-  height: 120%;
-  background-image: var(--shot);
-  background-size: cover;
-  background-position: center top;
-  transform: scale(1.15);
-  transform-origin: 50% 0;
+.mdc-blur i::before {
+  content: "";
+  position: absolute;
+  inset: 160px;                 /* back to the exact card rect */
+  background: #414651;
+  border-radius: var(--radius);
 }
-/* Strongest. Holds full alpha through the region the screenshot hides, so it is
-   still at ~0.8 where the shot's lower edge exposes it (~y=196), then dies at
-   ~y=290 — the visible "cast" that reads as the blur. */
-.mdc-blur-l1 {
-  filter: blur(32px) saturate(0.85);
-  opacity: 0.42;
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 46%, rgba(0, 0, 0, 0.72) 58%, transparent 69%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 46%, rgba(0, 0, 0, 0.72) 58%, transparent 69%);
+/* Mask stops are in the enlarged box: the card spans 21.9%-78.1% of it, so
+   card% -> 21.86 + card% * 56.28. Comments give the card-relative figure. */
+.mdc-blur-l1 {                  /* softest — dissolves the shape entirely */
+  filter: blur(80px);            /* Figma's progressive "Start: 80" */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 43%, transparent 52%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 43%, transparent 52%);
 }
-/* mid strength, carries furthest — trails to ~y=335, behind (never through) the
-   headline, which sits a layer above and is additionally backed by the veil */
-.mdc-blur-l2 {
-  filter: blur(20px) saturate(0.85);
-  opacity: 0.28;
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0, 0, 0, 0.55) 64%, transparent 77%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0, 0, 0, 0.55) 64%, transparent 77%);
+.mdc-blur-l2 {                  /* card 24-78% */
+  filter: blur(34px);
+  -webkit-mask-image: linear-gradient(180deg, transparent 35%, #000 44%, #000 59%, transparent 66%);
+  mask-image: linear-gradient(180deg, transparent 35%, #000 44%, #000 59%, transparent 66%);
 }
-/* faintest, keeps a little detail in the band just under the shot */
-.mdc-blur-l3 {
-  filter: blur(10px) saturate(0.85);
-  opacity: 0.12;
-  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.3) 57%, transparent 67%);
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.3) 57%, transparent 67%);
+.mdc-blur-l3 {                  /* card 46-93% */
+  filter: blur(12px);
+  -webkit-mask-image: linear-gradient(180deg, transparent 48%, #000 55%, #000 69%, transparent 74%);
+  mask-image: linear-gradient(180deg, transparent 48%, #000 55%, #000 69%, transparent 74%);
 }
-/* settles the blur back into the card fill so the text keeps its contrast */
-.mdc-blur-veil {
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(65, 70, 81, 0.05) 0%,
-    rgba(65, 70, 81, 0.45) 58%,
-    #414651 100%
-  );
+.mdc-blur-l4 {                  /* unblurred: keeps the bottom edge and its 24px
+                                   corners crisp, and paints last so the softer
+                                   layers never fuzz the lower edge */
+  -webkit-mask-image: linear-gradient(180deg, transparent 57%, #000 65%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 57%, #000 65%, #000 100%);
 }
 
 /* Figma "Info Box": x=26, y=253, w=262, gap 11 */
@@ -2009,7 +2026,7 @@ video::-webkit-media-controls-start-playback-button {
    (overlapping the card's top edge), reached via the brief's transform. */
 .mdc-shot {
   position: absolute;
-  z-index: 5;
+  z-index: 10;                  /* the one thing allowed over the neighbours */
   left: -7px;                   /* (320 - 333) / 2 — it overhangs both sides */
   top: 13px;                    /* + the brief's -55px lands it at -42 */
   width: 333px;
@@ -2100,6 +2117,14 @@ video::-webkit-media-controls-start-playback-button {
    `auto`, so the screenshot could no longer escape upward — it stays suppressed
    in this mode, and the card keeps its logo, headline, date and link. */
 @media (prefers-reduced-motion: reduce) {
+  /* the scroll loop never runs here, so data-fx is never set — the heading has
+     to opt out of its resting state or it would stay hidden for good */
+  .mdc-head:not([data-fx]) .mdc-w,
+  .mdc-w {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
   .mdc-track { animation: none; }
   .mdc-marquee {
     overflow-x: auto;
